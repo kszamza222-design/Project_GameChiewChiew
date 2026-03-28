@@ -16,7 +16,7 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Jumb",
+                    "name": "Jump",
                     "type": "Button",
                     "id": "4490aadc-2fdb-4dd0-b4e4-135dd9d99877",
                     "expectedControlType": "",
@@ -42,7 +42,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Jumb",
+                    "action": "Jump",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -128,7 +128,7 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Jumb",
+                    "name": "Jump",
                     "type": "Button",
                     "id": "3acf6ae4-84e6-4790-abb2-0853ff246f25",
                     "expectedControlType": "",
@@ -209,7 +209,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Jumb",
+                    "action": "Jump",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
