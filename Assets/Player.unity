@@ -144,7 +144,7 @@ Transform:
   m_GameObject: {fileID: 38743367}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.03233552, y: 0.739983, z: 0.28}
+  m_LocalPosition: {x: 0, y: 1, z: 1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -328,7 +328,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.45
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.z
@@ -407,7 +407,9 @@ GameObject:
   - component: {fileID: 387383974}
   - component: {fileID: 387383973}
   - component: {fileID: 387383972}
-  m_Layer: 0
+  - component: {fileID: 387383977}
+  - component: {fileID: 387383976}
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -507,6 +509,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &387383976
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 387383971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e601fe157c26ce549b06f08638ebc11c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableObject
+  displayName: Object
+  enableHighlight: 1
+  highlightRadius: 2.8
+  emissionIntensity: 0.5
+  highlightColor: {r: 1, g: 0.92, b: 0.3, a: 1}
+--- !u!54 &387383977
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 387383971}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &642418724 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
@@ -525,17 +571,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   moveSpeed: 5
+  acceleration: 50
+  deceleration: 30
   rotationSpeed: 600
   jumpHeight: 1.5
   gravity: -20
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
-  holdPoint: {fileID: 0}
+  holdPoint: {fileID: 1296119918}
   pickupRadius: 2.2
   pickableLayer:
     serializedVersion: 2
     m_Bits: 64
+  carrySpeedMultiplier: 0.1
   throwForce: 9
   throwUpRatio: 0.25
   dragForce: 500
@@ -763,17 +812,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   moveSpeed: 5
+  acceleration: 50
+  deceleration: 30
   rotationSpeed: 600
   jumpHeight: 1.2
   gravity: -15
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
-  holdPoint: {fileID: 0}
+  holdPoint: {fileID: 38743368}
   pickupRadius: 2.2
   pickableLayer:
     serializedVersion: 2
     m_Bits: 64
+  carrySpeedMultiplier: 0.3
   throwForce: 9
   throwUpRatio: 0.25
   dragForce: 500
@@ -846,7 +898,7 @@ Transform:
   m_GameObject: {fileID: 1296119917}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.00399971, y: 1.0399998, z: 0.1266098}
+  m_LocalPosition: {x: 0, y: 1, z: 1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1028,7 +1080,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.45
+      value: 0.05000019
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1073,7 +1125,7 @@ PrefabInstance:
     - target: {fileID: 5866666021909216657, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 40db3173a05ae3242b1c182a09b0a183, type: 2}
+      objectReference: {fileID: 9100000, guid: c34730fd34f5095428654644acc8a24c, type: 2}
     - target: {fileID: 5866666021909216657, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_ApplyRootMotion
       value: 0
