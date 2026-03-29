@@ -584,7 +584,7 @@ MonoBehaviour:
   pickableLayer:
     serializedVersion: 2
     m_Bits: 64
-  carrySpeedMultiplier: 0.3
+  carrySpeedMultiplier: 0.25
   throwForce: 9
   throwUpRatio: 0.25
   dragForce: 500
@@ -825,7 +825,7 @@ MonoBehaviour:
   pickableLayer:
     serializedVersion: 2
     m_Bits: 64
-  carrySpeedMultiplier: 0.3
+  carrySpeedMultiplier: 0.4
   throwForce: 9
   throwUpRatio: 0.25
   dragForce: 500
