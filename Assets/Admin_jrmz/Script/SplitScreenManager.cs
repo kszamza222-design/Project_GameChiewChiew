@@ -1,104 +1,61 @@
 using UnityEngine;
+using Cinemachine;
 
-/// <summary>
-/// จัดการ Split-Screen :
-///   • ตั้ง Viewport ซ้าย / ขวา ให้ Camera แต่ละตัว
-///   • วาดเส้นแบ่งกลางจอ
-///   • ส่ง Camera reference ให้ PlayerController
-///
-/// วิธีใช้ : วาง Script นี้บน GameObject เปล่าชื่อ "SplitScreenManager"
-/// </summary>
+// วาง Script นี้บน GameObject ว่างๆ ชื่อ "GameManager"
 public class SplitScreenManager : MonoBehaviour
 {
-    // ═══════════════════════════════════════════════════
-    //  Inspector
-    // ═══════════════════════════════════════════════════
+    [Header("Cameras")]
+    // ลาก Camera ของ Player1 และ Player2 มาวาง
+    public Camera cameraPlayer1;
+    public Camera cameraPlayer2;
 
-    [Header("── Cameras ──────────────────────────")]
-    [Tooltip("Camera ฝั่งซ้าย (Player 1)")]
-    public Camera cameraP1;
-    [Tooltip("Camera ฝั่งขวา (Player 2)")]
-    public Camera cameraP2;
+    [Header("Cinemachine Virtual Cameras")]
+    // ลาก CinemachineFreeLookCamera ของแต่ละ Player มาวาง
+    public CinemachineFreeLook vcamPlayer1;
+    public CinemachineFreeLook vcamPlayer2;
 
-    [Header("── Players ─────────────────────────")]
-    public PlayerController player1;
-    public PlayerController player2;
-
-    [Header("── Divider Line ────────────────────")]
-    [Tooltip("ความกว้างเส้น (สัดส่วนหน้าจอ 0‒0.05)")]
-    [Range(0.001f, 0.05f)]
-    public float dividerWidthRatio = 0.003f;
-
-    [Tooltip("สีเส้นแบ่ง")]
-    public Color dividerColor = Color.white;
-
-    [Tooltip("วาดเส้นแบ่งหรือไม่")]
-    public bool showDivider = true;
-
-    // ═══════════════════════════════════════════════════
-    //  Private
-    // ═══════════════════════════════════════════════════
-
-    Texture2D _divTex;
-    GUIStyle  _divStyle;
-
-    // ═══════════════════════════════════════════════════
-    //  Init
-    // ═══════════════════════════════════════════════════
-
-    void Awake()
+    void Start()
     {
-        ApplyViewports();
-        LinkCameras();
-        BuildDividerStyle();
+        SetupSplitScreen();
     }
 
-    // ── Viewport : ซ้าย 50% | ขวา 50% ─────────────────
-    void ApplyViewports()
+    void SetupSplitScreen()
     {
-        if (cameraP1 != null) cameraP1.rect = new Rect(0.0f, 0f, 0.5f, 1f);
-        if (cameraP2 != null) cameraP2.rect = new Rect(0.5f, 0f, 0.5f, 1f);
+        // Viewport Rect คือสัดส่วนพื้นที่จอ (0-1)
+        // (x, y, width, height)
+
+        // Player1 = ครึ่งซ้าย: เริ่มจากซ้ายสุด (x=0), กว้างครึ่งจอ (w=0.5)
+        cameraPlayer1.rect = new Rect(0f, 0f, 0.5f, 1f);
+
+        // Player2 = ครึ่งขวา: เริ่มจากกึ่งกลาง (x=0.5), กว้างครึ่งจอ (w=0.5)
+        cameraPlayer2.rect = new Rect(0.5f, 0f, 0.5f, 1f);
+
+        // ตั้ง Priority ของ VCam ให้ถูก Camera รับ
+        // VCam ที่ Priority สูงกว่าจะถูกใช้กับ Camera Brain ที่เชื่อมอยู่
+        vcamPlayer1.Priority = 10;
+        vcamPlayer2.Priority = 10;
+
+        // ตั้ง Output Channel แยกกัน (Cinemachine ใหม่ใช้ระบบ Channel)
+        // Player1 Camera Brain ฟัง Channel 1
+        // Player2 Camera Brain ฟัง Channel 2
+        SetCameraChannel(cameraPlayer1, 1);
+        SetCameraChannel(cameraPlayer2, 2);
+
+        SetVCamChannel(vcamPlayer1, 1);
+        SetVCamChannel(vcamPlayer2, 2);
     }
 
-    // ── ส่ง Camera ให้ PlayerController ─────────────────
-    void LinkCameras()
+    // ตั้ง Output Channel ของ CinemachineBrain (บน Main Camera)
+    void SetCameraChannel(Camera cam, int channel)
     {
-        if (player1 != null && cameraP1 != null) player1.AssignCamera(cameraP1);
-        if (player2 != null && cameraP2 != null) player2.AssignCamera(cameraP2);
+        CinemachineBrain brain = cam.GetComponent<CinemachineBrain>();
+        if (brain != null)
+            brain.ChannelMask = (OutputChannels)(1 << channel);
     }
 
-    // ── สร้าง Texture สำหรับเส้น ─────────────────────
-    void BuildDividerStyle()
+    // ตั้ง Output Channel ของ Virtual Camera
+    void SetVCamChannel(CinemachineFreeLook vcam, int channel)
     {
-        _divTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-        _divTex.SetPixel(0, 0, dividerColor);
-        _divTex.Apply();
-
-        _divStyle = new GUIStyle();
-        _divStyle.normal.background = _divTex;
-    }
-
-    // ═══════════════════════════════════════════════════
-    //  OnGUI — วาดเส้นกลางจอ
-    // ═══════════════════════════════════════════════════
-
-    void OnGUI()
-    {
-        if (!showDivider || _divStyle == null) return;
-
-        float pxW = Screen.width * dividerWidthRatio;
-        float x   = Screen.width * 0.5f - pxW * 0.5f;
-
-        GUI.Box(new Rect(x, 0f, pxW, Screen.height), GUIContent.none, _divStyle);
-    }
-
-    // ── รีเฟรชสีถ้าเปลี่ยนใน Inspector (Play mode) ────
-    void OnValidate()
-    {
-        if (_divTex != null)
-        {
-            _divTex.SetPixel(0, 0, dividerColor);
-            _divTex.Apply();
-        }
+        vcam.OutputChannel = (OutputChannels)(1 << channel);
     }
 }
