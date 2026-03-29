@@ -328,7 +328,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.11000013
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.z
@@ -416,7 +416,6 @@ MonoBehaviour:
   rotationSpeed: 600
   jumpHeight: 1.5
   gravity: -20
-  groundCheckOffset: 0.05
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -655,7 +654,6 @@ MonoBehaviour:
   rotationSpeed: 600
   jumpHeight: 1.2
   gravity: -15
-  groundCheckOffset: 0.05
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -918,7 +916,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.11
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.z
