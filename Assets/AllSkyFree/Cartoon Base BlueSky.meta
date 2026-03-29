@@ -1,9 +1,15 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/AllSkyFree/Cartoon Base BlueSky.meta
 guid: 9f633969e0c5e4bfeba8bb43b5348d81
 folderAsset: yes
 timeCreated: 1557585925
 licenseType: Store
+========
+guid: 7b0e507958fc3a940b3afabb02fdb2cc
+folderAsset: yes
+>>>>>>>> Restore_jrmz:Assets/StarterAssets/Mobile/Scripts.meta
 DefaultImporter:
+  externalObjects: {}
   userData: 
   assetBundleName: 
   assetBundleVariant: 

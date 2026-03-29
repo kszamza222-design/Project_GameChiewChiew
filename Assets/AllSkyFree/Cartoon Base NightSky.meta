@@ -1,9 +1,15 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/AllSkyFree/Cartoon Base NightSky.meta
 guid: edfd7568a47754e23b20068c1847c5fb
 folderAsset: yes
 timeCreated: 1557585935
 licenseType: Store
+========
+guid: 254f8f69c2bb6464cbd208f418928aab
+folderAsset: yes
+>>>>>>>> Restore_jrmz:Assets/StarterAssets/TutorialInfo/Scripts/Editor.meta
 DefaultImporter:
+  externalObjects: {}
   userData: 
   assetBundleName: 
   assetBundleVariant: 
