@@ -1,11 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// ควบคุมการเคลื่อนที่  กระโดด  ยกของ  ลากของ  โยนของ
-/// ต้องการ Component บน GameObject เดียวกัน :
-///   • CharacterController
-///   • PlayerInputHandler
-///   • Animator  (optional — ถ้ามี จะส่ง parameter ให้อัตโนมัติ)
+/// PlayerController — Human Fall Flat style
+/// ใช้ Animator Bool "IsCarrying" แทน Layer Weight
+/// สร้าง Transition ใน Base Layer: Idle Walk Run Blend ↔ Carry_Blend
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerInputHandler))]
@@ -15,23 +13,26 @@ public class PlayerController : MonoBehaviour
     //  Inspector
     // ═══════════════════════════════════════════════════
 
-    [Header("── Movement ──────────────────────")]
-    [Tooltip("ความเร็วเดินปกติ (m/s)")]
+    [Header("── Movement (HFF Style) ──────────")]
     public float moveSpeed     = 5f;
-    [Tooltip("ความเร็วหมุนตัวละคร (องศา/วินาที)")]
+    public float acceleration  = 50f;
+    public float deceleration  = 30f;
     public float rotationSpeed = 600f;
 
     [Header("── Jump & Gravity ─────────────────")]
-    [Tooltip("ความสูงในการกระโดด (เมตร)")]
     public float jumpHeight    = 1.2f;
-    [Tooltip("แรงโน้มถ่วง (ค่าลบ)")]
     public float gravity       = -15f;
     public LayerMask groundLayer;
 
     [Header("── Carry ──────────────────────────")]
+    [Tooltip("ลาก HoldPoint_P1 หรือ HoldPoint_P2 มาใส่")]
     public Transform holdPoint;
+    [Tooltip("รัศมีตรวจหยิบของรอบตัวละคร")]
     public float pickupRadius  = 2.2f;
     public LayerMask pickableLayer;
+    [Tooltip("ตัวคูณความเร็วขณะถือของ (0.5 = ช้าลงครึ่งนึง)")]
+    [Range(0.1f, 1f)]
+    public float carrySpeedMultiplier = 0.5f;
 
     [Header("── Throw ───────────────────────────")]
     public float throwForce    = 9f;
@@ -51,7 +52,8 @@ public class PlayerController : MonoBehaviour
     Animator            _anim;
     Camera              _cam;
 
-    Vector3 _moveVelocity;
+    Vector3 _horizontalVel;
+    float   _verticalVel;
     bool    _isGrounded;
     float   _jumpCooldown;
 
@@ -60,11 +62,13 @@ public class PlayerController : MonoBehaviour
     ConfigurableJoint _dragJoint;
     Rigidbody         _draggedRb;
 
+    // ── Animator hash ──
     static readonly int HashSpeed       = Animator.StringToHash("Speed");
     static readonly int HashMotionSpeed = Animator.StringToHash("MotionSpeed");
     static readonly int HashGrounded    = Animator.StringToHash("Grounded");
     static readonly int HashJump        = Animator.StringToHash("Jump");
     static readonly int HashFreeFall    = Animator.StringToHash("FreeFall");
+    static readonly int HashIsCarrying  = Animator.StringToHash("IsCarrying");
 
     // ═══════════════════════════════════════════════════
     //  Init
@@ -78,6 +82,28 @@ public class PlayerController : MonoBehaviour
         _myCollider = GetComponent<Collider>();
     }
 
+    void Start()
+    {
+        if (holdPoint == null)
+            Debug.LogWarning($"[{name}] Hold Point ยังไม่ได้ผูก!");
+
+        if (_anim != null)
+        {
+            bool found = false;
+            foreach (var p in _anim.parameters)
+                if (p.name == "IsCarrying") { found = true; break; }
+
+            if (!found)
+                Debug.LogError($"[{name}] ไม่พบ Parameter 'IsCarrying' ใน Animator!");
+            else
+                Debug.Log($"[{name}] พบ Parameter 'IsCarrying' ✓");
+        }
+        else
+        {
+            Debug.LogError($"[{name}] ไม่พบ Animator Component!");
+        }
+    }
+
     public void AssignCamera(Camera cam) => _cam = cam;
 
     // ═══════════════════════════════════════════════════
@@ -89,9 +115,18 @@ public class PlayerController : MonoBehaviour
         GroundCheck();
         HandleJump();
         Move();
-        HandleInteract();
+        HandleCarry();
         UpdateCarriedObject();
         AnimatorSync();
+    }
+
+    void FixedUpdate()
+    {
+        if (_heldRb != null && holdPoint != null)
+        {
+            _heldRb.MovePosition(holdPoint.position);
+            _heldRb.MoveRotation(holdPoint.rotation);
+        }
     }
 
     // ═══════════════════════════════════════════════════
@@ -101,45 +136,35 @@ public class PlayerController : MonoBehaviour
     void GroundCheck()
     {
         _jumpCooldown -= Time.deltaTime;
-
-        if (_jumpCooldown > 0f)
-        {
-            _isGrounded = false;
-            return;
-        }
-
+        if (_jumpCooldown > 0f) { _isGrounded = false; return; }
         _isGrounded = _cc.isGrounded;
-
-        if (_isGrounded && _moveVelocity.y < 0f)
-            _moveVelocity.y = -2f;
+        if (_isGrounded && _verticalVel < 0f) _verticalVel = -2f;
     }
 
     // ═══════════════════════════════════════════════════
-    //  HandleJump
+    //  Jump
     // ═══════════════════════════════════════════════════
 
     void HandleJump()
     {
         if (_input.JumpPressed && _isGrounded)
         {
-            _moveVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            _jumpCooldown   = 0.2f;
+            _verticalVel  = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            _jumpCooldown = 0.2f;
             _anim?.ResetTrigger(HashJump);
             _anim?.SetTrigger(HashJump);
         }
     }
 
     // ═══════════════════════════════════════════════════
-    //  Move — cc.Move() ครั้งเดียวต่อ Frame
+    //  Move
     // ═══════════════════════════════════════════════════
 
     void Move()
     {
-        // Gravity
-        _moveVelocity.y += gravity * Time.deltaTime;
+        _verticalVel += gravity * Time.deltaTime;
 
-        // Horizontal
-        Vector3 horizontal = Vector3.zero;
+        Vector3 targetVel = Vector3.zero;
 
         if (_cam != null && _input.MoveInput.sqrMagnitude > 0.01f)
         {
@@ -152,34 +177,37 @@ public class PlayerController : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
 
-            float spd = _heldRb != null ? moveSpeed * 0.7f : moveSpeed;
-            horizontal = dir * spd;
+            // ── ถือของ = ช้าลงตาม carrySpeedMultiplier ──
+            float spd = _heldRb != null ? moveSpeed * carrySpeedMultiplier : moveSpeed;
+            targetVel = dir * spd;
         }
 
-        // Move ครั้งเดียว — รวม horizontal + vertical
-        Vector3 motion = new Vector3(horizontal.x, _moveVelocity.y, horizontal.z);
+        float rate = targetVel.sqrMagnitude > 0.01f ? acceleration : deceleration;
+        _horizontalVel = Vector3.MoveTowards(_horizontalVel, targetVel, rate * Time.deltaTime);
+
+        Vector3 motion = new Vector3(_horizontalVel.x, _verticalVel, _horizontalVel.z);
         _cc.Move(motion * Time.deltaTime);
     }
 
     // ═══════════════════════════════════════════════════
-    //  Interact
+    //  HandleCarry
     // ═══════════════════════════════════════════════════
 
-    void HandleInteract()
+    void HandleCarry()
     {
         if (_input.ThrowPressed && _heldRb != null) { ThrowObject(); return; }
-
-        if (_input.InteractPressed)
-        {
-            if (_heldRb != null) DropObject();
-            else                 TryPickup();
-        }
+        if (_input.CarryPressed  && _heldRb == null) TryPickup();
+        if (_input.CarryReleased && _heldRb != null) DropObject();
     }
 
     void TryPickup()
     {
         Collider[] hits = Physics.OverlapSphere(transform.position, pickupRadius, pickableLayer);
-        if (hits.Length == 0) return;
+        if (hits.Length == 0)
+        {
+            Debug.Log($"[{name}] TryPickup: ไม่พบ Object ใน radius {pickupRadius}");
+            return;
+        }
 
         float closest = float.MaxValue;
         Rigidbody bestRb = null;
@@ -195,8 +223,16 @@ public class PlayerController : MonoBehaviour
         _heldRb.useGravity    = false;
         _heldRb.isKinematic   = true;
         _heldRb.interpolation = RigidbodyInterpolation.Interpolate;
+
+        if (holdPoint != null)
+        {
+            _heldRb.position = holdPoint.position;
+            _heldRb.rotation = holdPoint.rotation;
+        }
+
         ToggleHeldCollision(true);
         _heldRb.GetComponent<PickableObject>()?.OnPickedUp();
+        Debug.Log($"[{name}] หยิบ {bestRb.name} ✓");
     }
 
     void DropObject()
@@ -232,33 +268,33 @@ public class PlayerController : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════════
-    //  Carry
+    //  UpdateCarriedObject
     // ═══════════════════════════════════════════════════
 
     void UpdateCarriedObject()
     {
         if (_heldRb == null || holdPoint == null) return;
-        _heldRb.MovePosition(holdPoint.position);
-        _heldRb.MoveRotation(holdPoint.rotation);
+        _heldRb.transform.position = holdPoint.position;
+        _heldRb.transform.rotation = holdPoint.rotation;
     }
 
     // ═══════════════════════════════════════════════════
-    //  Animator sync
+    //  AnimatorSync
     // ═══════════════════════════════════════════════════
 
     void AnimatorSync()
     {
         if (_anim == null) return;
 
-        float spd = _input.MoveInput.magnitude
-                  * (_heldRb != null ? moveSpeed * 0.7f : moveSpeed);
+        bool isCarrying = _heldRb != null;
+        float spd       = _horizontalVel.magnitude;
 
-        _anim.SetFloat(HashSpeed,       spd, 0.1f, Time.deltaTime);
+        _anim.SetFloat(HashSpeed,       spd, 0.15f, Time.deltaTime);
         _anim.SetFloat(HashMotionSpeed, 1f);
         _anim.SetBool(HashGrounded,     _isGrounded);
-        _anim.SetBool(HashFreeFall,     !_isGrounded && _moveVelocity.y < -1f);
+        _anim.SetBool(HashFreeFall,     !_isGrounded && _verticalVel < -1f);
+        _anim.SetBool(HashIsCarrying,   isCarrying);
 
-        // ล้าง Jump Trigger ทันทีที่ติดพื้น ป้องกัน Trigger ค้างวนลูป
         if (_isGrounded)
             _anim.ResetTrigger(HashJump);
     }
@@ -278,7 +314,10 @@ public class PlayerController : MonoBehaviour
         if (holdPoint != null)
         {
             Gizmos.color = Color.cyan;
-            Gizmos.DrawSphere(holdPoint.position, 0.08f);
+            Gizmos.DrawSphere(holdPoint.position, 0.12f);
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(holdPoint.position,
+                            holdPoint.position + holdPoint.forward * 0.4f);
         }
     }
 }
