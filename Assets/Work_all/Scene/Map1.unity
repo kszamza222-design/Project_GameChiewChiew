@@ -511,7 +511,7 @@ Transform:
   m_GameObject: {fileID: 24237275}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.51, y: 2.52, z: -0}
+  m_LocalPosition: {x: -0.097, y: 2.733, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13093,7 +13093,7 @@ MonoBehaviour:
   promptAnchor: {fileID: 24237276}
   heightAbove: 2
   showRadius: 3
-  boardRotation: {x: 0, y: 180, z: 0}
+  boardRotation: {x: 0, y: 315, z: 0}
   notifyDuration: 3
 --- !u!95 &519182379 stripped
 Animator:
