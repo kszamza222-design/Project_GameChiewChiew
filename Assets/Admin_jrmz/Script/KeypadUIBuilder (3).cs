@@ -6,8 +6,12 @@ using TMPro;
 /// KeypadUIBuilder — UI กรอกรหัสผ่านกลางจอของ Player ที่กด
 ///
 /// Split-Screen:
-///   Player1 (ซ้าย) กด E  → UI ขึ้นกลางจอซ้าย
-///   Player2 (ขวา) กด Numpad7 → UI ขึ้นกลางจอขวา
+///   Player1 (ซ้าย) กด E        → UI ขึ้นกลางจอซ้าย
+///   Player2 (ขวา)  กด Numpad7  → UI ขึ้นกลางจอขวา
+///
+/// แก้ไข:
+///   • ปุ่ม ESC เปลี่ยนเป็น TextMeshProUGUI ล้วน (ไม่มีกล่องพื้นหลัง)
+///   • เมื่อเปิดประตูสำเร็จแล้ว (_doorUnlocked = true) Keypad จะไม่ทำงานอีกเลย
 /// </summary>
 public class KeypadUIBuilder : MonoBehaviour
 {
@@ -43,6 +47,11 @@ public class KeypadUIBuilder : MonoBehaviour
     bool             _isOpen     = false;
     PlayerController _nearPlayer = null;
 
+    /// <summary>
+    /// ประตูถูกปลดล็อคแล้ว — true = Keypad หยุดทำงานถาวร
+    /// </summary>
+    bool _doorUnlocked = false;
+
     SlidingDoor _door;
 
     // ═══════════════════════════════════════════════════
@@ -72,7 +81,7 @@ public class KeypadUIBuilder : MonoBehaviour
 
         Transform root = targetCanvas.transform;
 
-        // Panel — anchorMin/Max จะถูกตั้งใน Open() ตามฝั่ง Player
+        // Panel
         _panel   = MakeImage(root, "KeypadPanel",
                              Vector2.zero, new Vector2(340, 580),
                              new Color(0.08f, 0.08f, 0.12f, 0.97f));
@@ -90,15 +99,15 @@ public class KeypadUIBuilder : MonoBehaviour
         var dispGo = MakeImage(p, "DisplayBG",
                                new Vector2(0, 180), new Vector2(280, 60),
                                new Color(0.02f, 0.02f, 0.05f, 1f));
-        _display   = MakeText(dispGo.transform, "DisplayText", "_ _ _ _",
-                              Vector2.zero, new Vector2(280, 60), 38, Color.white);
+        _display = MakeText(dispGo.transform, "DisplayText", "_ _ _ _",
+                            Vector2.zero, new Vector2(280, 60), 38, Color.white);
 
         // Status
         _statusText = MakeText(p, "Status", "",
                                new Vector2(0, 125), new Vector2(280, 36), 20,
                                new Color(1f, 0.4f, 0.4f));
 
-        // ปุ่มตัวเลข
+        // ── ปุ่มตัวเลข ──
         MakeNumBtn(p, 1, new Vector2(-100,  65));
         MakeNumBtn(p, 2, new Vector2(   0,  65));
         MakeNumBtn(p, 3, new Vector2( 100,  65));
@@ -116,9 +125,8 @@ public class KeypadUIBuilder : MonoBehaviour
         MakeActionBtn(p, "OK",  new Vector2( 100,-205),
                       new Color(0.2f,0.55f,0.2f), PressOK);
 
-        // ESC
-        MakeActionBtn(p, "ESC  ออกจากหน้านี้", new Vector2(0,-275),
-                      new Color(0.35f,0.35f,0.45f), Close);
+        // ── ESC — Text ล้วน ไม่มีกล่องพื้นหลัง ──────────────
+        MakeEscText(p, new Vector2(0, -275));
     }
 
     // ═══════════════════════════════════════════════════
@@ -148,44 +156,71 @@ public class KeypadUIBuilder : MonoBehaviour
         rt.anchoredPosition = pos;
         rt.sizeDelta        = size;
         var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text = text; tmp.fontSize = fontSize;
+        tmp.text      = text;
+        tmp.fontSize  = fontSize;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = color;
+        tmp.color     = color;
         return tmp;
+    }
+
+    // ── ESC Text ล้วน — ไม่มี Image พื้นหลัง ────────────────
+    void MakeEscText(Transform parent, Vector2 pos)
+    {
+        // GameObject มีแค่ RectTransform + TextMeshProUGUI + Button
+        // ไม่มี Image component → ไม่มีกล่องพื้นหลังสีใดๆ
+        var go = new GameObject("Btn_ESC", typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta        = new Vector2(280, 44);
+
+        // Text
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text      = "ESC  —  Close";          // ภาษาอังกฤษ (TMP ไม่ต้องการ Font เพิ่ม)
+        tmp.fontSize  = 22f;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.color     = new Color(0.65f, 0.65f, 0.75f, 1f);   // เทาอมม่วงอ่อน
+
+        // Button — ไม่มี targetGraphic → ใช้ null-safe mode
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = null;   // ไม่มี Graphic → ไม่แสดง highlight กล่อง
+        btn.onClick.AddListener(Close);
     }
 
     void MakeNumBtn(Transform parent, int num, Vector2 pos)
     {
         int n = num;
         MakeActionBtn(parent, num.ToString(), pos,
-                      new Color(0.22f,0.22f,0.32f), () => PressNumber(n));
+                      new Color(0.22f, 0.22f, 0.32f), () => PressNumber(n));
     }
 
     void MakeActionBtn(Transform parent, string label, Vector2 pos,
                        Color bgColor, UnityEngine.Events.UnityAction onClick)
     {
-        bool isEsc = label.StartsWith("ESC");
-        var sz = isEsc ? new Vector2(280,50) : new Vector2(82,72);
-        float fz = isEsc ? 20f : (label.Length > 2 ? 18f : 28f);
+        var sz = new Vector2(82, 72);
+        float fz = label.Length > 2 ? 18f : 28f;
 
-        var go = new GameObject("Btn_"+label,
+        var go = new GameObject("Btn_" + label,
                                 typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
         var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f,0.5f);
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = pos;
-        rt.sizeDelta = sz;
+        rt.sizeDelta        = sz;
 
         var img = go.GetComponent<Image>();
         img.color = bgColor;
+
         var btn = go.GetComponent<Button>();
-        var cb = btn.colors;
+        var cb  = btn.colors;
         cb.normalColor      = bgColor;
         cb.highlightedColor = bgColor * 1.4f;
         cb.pressedColor     = bgColor * 0.6f;
         cb.fadeDuration     = 0.05f;
-        btn.colors = cb;
-        btn.targetGraphic = img;
+        btn.colors          = cb;
+        btn.targetGraphic   = img;
         btn.onClick.AddListener(onClick);
 
         MakeText(go.transform, "Label", label,
@@ -193,201 +228,183 @@ public class KeypadUIBuilder : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════════
-    //  Update
+    //  Update — ตรวจ Player เข้าใกล้ + กดเปิด UI
     // ═══════════════════════════════════════════════════
 
     void Update()
     {
-        CheckDistance();
+        // ── ประตูเปิดแล้ว = หยุดทำงานทั้งหมด ──────────────
+        if (_doorUnlocked) return;
 
-        if (_isOpen && Input.GetKeyDown(KeyCode.Escape))
-        { Close(); return; }
+        CheckNearby();
+        HandleOpenKey();
+    }
 
-        if (_nearPlayer == null) return;
+    // ── หา Player ที่อยู่ใกล้ Keypad ────────────────────
+    void CheckNearby()
+    {
+        _nearPlayer = null;
 
-        var inp = _nearPlayer.GetComponent<PlayerInputHandler>();
-        if (inp == null) return;
+        if (player1 != null &&
+            Vector3.Distance(transform.position, player1.transform.position) <= triggerRadius)
+            _nearPlayer = player1;
 
-        bool toggle = inp.playerID == PlayerInputHandler.PlayerID.Player1
-                    ? Input.GetKeyDown(KeyCode.E)
-                    : Input.GetKeyDown(KeyCode.Keypad7);
+        else if (player2 != null &&
+                 Vector3.Distance(transform.position, player2.transform.position) <= triggerRadius)
+            _nearPlayer = player2;
+    }
 
-        if (toggle)
-        {
-            if (_isOpen) Close();
-            else         Open();
-        }
+    // ── ตรวจปุ่มเปิด UI ──────────────────────────────
+    void HandleOpenKey()
+    {
+        if (_nearPlayer == null || _isOpen) return;
+
+        bool openPressed = false;
+
+        if      (_nearPlayer == player1 && Input.GetKeyDown(KeyCode.E))
+            openPressed = true;
+        else if (_nearPlayer == player2 && Input.GetKeyDown(KeyCode.Keypad7))
+            openPressed = true;
+
+        if (openPressed) Open(_nearPlayer);
     }
 
     // ═══════════════════════════════════════════════════
-    //  ตรวจระยะ
+    //  Open / Close
     // ═══════════════════════════════════════════════════
 
-    void CheckDistance()
+    void Open(PlayerController player)
     {
-        PlayerController closest = null;
-        float minD = triggerRadius;
-        TryCloser(player1, ref closest, ref minD);
-        TryCloser(player2, ref closest, ref minD);
+        // ป้องกันเปิดซ้ำหลังปลดล็อค
+        if (_doorUnlocked) return;
 
-        if (_isOpen && _nearPlayer != null)
-        {
-            float d = Vector3.Distance(transform.position,
-                                       _nearPlayer.transform.position);
-            if (d > triggerRadius + 1f) Close();
-        }
-
-        _nearPlayer = closest;
-    }
-
-    void TryCloser(PlayerController pc,
-                   ref PlayerController best, ref float minD)
-    {
-        if (pc == null) return;
-        float d = Vector3.Distance(transform.position, pc.transform.position);
-        if (d < minD) { minD = d; best = pc; }
-    }
-
-    // ═══════════════════════════════════════════════════
-    //  Open — เลื่อน Panel ไปกลางจอของ Player ที่กด
-    // ═══════════════════════════════════════════════════
-
-    void Open()
-    {
         _isOpen = true;
         _input  = "";
+        UpdateDisplay();
         SetStatus("", Color.white);
-        RefreshDisplay();
 
-        // ── เลื่อน Panel ให้ตรงกลางจอของ Player ──────
-        PositionPanelForPlayer(_nearPlayer);
+        // จัดตำแหน่ง Panel ให้อยู่กลางจอของ Player นั้น
+        PositionPanel(player);
 
         _panel.SetActive(true);
-
-        if (_nearPlayer != null) _nearPlayer.enabled = false;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible   = true;
     }
 
-    /// <summary>
-    /// ย้าย Panel ให้อยู่กลาง Viewport ของ Player ที่กด
-    /// Split-Screen ซ้าย  = anchorX 0.0 – 0.5  → กลาง = 0.25
-    /// Split-Screen ขวา   = anchorX 0.5 – 1.0  → กลาง = 0.75
-    /// </summary>
-    void PositionPanelForPlayer(PlayerController pc)
-    {
-        if (_panelRT == null) return;
-
-        var inp = pc != null ? pc.GetComponent<PlayerInputHandler>() : null;
-        bool isP1 = inp == null || inp.playerID == PlayerInputHandler.PlayerID.Player1;
-
-        if (isP1)
-        {
-            // ฝั่งซ้าย: Viewport X = 0.0 – 0.5
-            _panelRT.anchorMin = new Vector2(0f,   0f);
-            _panelRT.anchorMax = new Vector2(0.5f, 1f);
-        }
-        else
-        {
-            // ฝั่งขวา: Viewport X = 0.5 – 1.0
-            _panelRT.anchorMin = new Vector2(0.5f, 0f);
-            _panelRT.anchorMax = new Vector2(1f,   1f);
-        }
-
-        _panelRT.pivot             = new Vector2(0.5f, 0.5f);
-        _panelRT.anchoredPosition  = Vector2.zero;   // กลาง Viewport
-        _panelRT.sizeDelta         = new Vector2(340, 580);
-    }
-
-    // ═══════════════════════════════════════════════════
-    //  Close
-    // ═══════════════════════════════════════════════════
-
-    public void Close()
+    void Close()
     {
         _isOpen = false;
         _panel.SetActive(false);
-
-        if (_nearPlayer != null) _nearPlayer.enabled = true;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible   = false;
-
         _input = "";
-        RefreshDisplay();
+    }
+
+    // ── คำนวณ anchoredPosition ให้กลางจอฝั่งนั้น ─────
+    void PositionPanel(PlayerController player)
+    {
+        // Canvas ต้องเป็น Screen Space - Overlay
+        // จอซ้าย = x ที่ 25% ของ Screen, จอขวา = x ที่ 75%
+        bool isP1 = (player == player1);
+
+        float screenX = isP1 ? Screen.width * 0.25f : Screen.width * 0.75f;
+        float screenY = Screen.height * 0.5f;
+
+        // แปลง Screen → Canvas local position
+        RectTransform canvasRT = targetCanvas.GetComponent<RectTransform>();
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            canvasRT,
+            new Vector2(screenX, screenY),
+            targetCanvas.worldCamera,
+            out Vector2 localPos);
+
+        _panelRT.anchorMin = _panelRT.anchorMax = new Vector2(0.5f, 0.5f);
+        _panelRT.anchoredPosition = localPos;
     }
 
     // ═══════════════════════════════════════════════════
-    //  ปุ่ม Logic
+    //  Button Actions
     // ═══════════════════════════════════════════════════
 
     void PressNumber(int n)
     {
-        if (!_isOpen || _input.Length >= 4) return;
+        if (_input.Length >= correctCode.Length) return;
         _input += n.ToString();
+        UpdateDisplay();
         SetStatus("", Color.white);
-        RefreshDisplay();
     }
 
     void PressDelete()
     {
-        if (!_isOpen || _input.Length == 0) return;
+        if (_input.Length == 0) return;
         _input = _input.Substring(0, _input.Length - 1);
+        UpdateDisplay();
         SetStatus("", Color.white);
-        RefreshDisplay();
     }
 
     void PressOK()
     {
-        if (!_isOpen) return;
-        if (_input.Length < 4)
-        { SetStatus("กรอกให้ครบ 4 หลัก!", new Color(1f,0.6f,0.2f)); return; }
-
         if (_input == correctCode)
         {
-            SetStatus("✓ รหัสถูกต้อง!", new Color(0.3f,1f,0.4f));
-            Invoke(nameof(SuccessClose), 0.6f);
+            SetStatus("CORRECT  —  UNLOCKED", new Color(0.3f, 1f, 0.4f));
+
+            // เปิดประตู
+            if (_door != null) _door.ForceOpen();
+
+            // ── ล็อค Keypad ถาวร ──────────────────────────
+            _doorUnlocked = true;
+
+            // ปิด UI หลัง 1.5 วินาที
+            Invoke(nameof(Close), 1.5f);
         }
         else
         {
-            _input = "";
-            RefreshDisplay();
-            SetStatus("✗ รหัสไม่ถูกต้อง!", new Color(1f,0.3f,0.3f));
+            SetStatus("WRONG CODE", new Color(1f, 0.3f, 0.3f));
             if (_door != null) _door.PlayWrong();
+            _input = "";
+            Invoke(nameof(ClearStatusAndDisplay), 1.2f);
         }
     }
 
-    void SuccessClose()
+    void ClearStatusAndDisplay()
     {
-        if (_door != null) _door.ForceOpen();
-        Close();
+        _input = "";
+        UpdateDisplay();
+        SetStatus("", Color.white);
     }
 
     // ═══════════════════════════════════════════════════
-    //  Display
+    //  Display Helpers
     // ═══════════════════════════════════════════════════
 
-    void RefreshDisplay()
+    void UpdateDisplay()
     {
         if (_display == null) return;
-        string s = "";
-        for (int i = 0; i < 4; i++)
+
+        // แสดงตัวเลขที่กดแล้ว + ขีดสำหรับช่องที่ยังว่าง
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        for (int i = 0; i < correctCode.Length; i++)
         {
-            s += (i < _input.Length) ? "●" : "_";
-            if (i < 3) s += "  ";
+            if (i < _input.Length)
+                sb.Append(_input[i]);
+            else
+                sb.Append('_');
+
+            if (i < correctCode.Length - 1) sb.Append(' ');
         }
-        _display.text = s;
+        _display.text = sb.ToString();
     }
 
-    void SetStatus(string msg, Color color)
+    void SetStatus(string msg, Color col)
     {
         if (_statusText == null) return;
         _statusText.text  = msg;
-        _statusText.color = color;
+        _statusText.color = col;
     }
+
+    // ═══════════════════════════════════════════════════
+    //  Gizmo
+    // ═══════════════════════════════════════════════════
 
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.yellow;
+        Gizmos.color = _doorUnlocked ? Color.green : Color.cyan;
         Gizmos.DrawWireSphere(transform.position, triggerRadius);
     }
 }
