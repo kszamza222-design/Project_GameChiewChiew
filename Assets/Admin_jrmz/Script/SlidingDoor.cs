@@ -1,13 +1,19 @@
 using UnityEngine;
 
 /// <summary>
-/// SlidingDoor — รับคำสั่งจาก KeypadUIBuilder
+/// SlidingDoor — ประตูเปิดค้าง ไม่วนกลับ
 ///
-/// วิธีใช้:
-///   1. วาง Script นี้บน anim_door GameObject
-///   2. ผูก Door Animator
-///   3. ตั้ง Open Parameter Name ให้ตรงกับ Bool ใน Animator ("IsOpen")
-///   4. ไม่ต้องผูก Keypad — KeypadUIBuilder จะหาเองอัตโนมัติ
+/// Animator Setup ที่ถูกต้อง:
+///   States : Idle (Default) → DoorOpen
+///   Parameter : Bool "IsOpen"
+///   Transition Idle → DoorOpen :
+///     Condition    : IsOpen = true
+///     Has Exit Time: ✗ (ปิด!)
+///     Transition Duration: 0
+///   DoorOpen State:
+///     Speed        : 1
+///     Loop Time    : ✗ (ปิด! — สำคัญมาก ไม่งั้นวนซ้ำ)
+///     ไม่มี Transition กลับ Idle
 /// </summary>
 public class SlidingDoor : MonoBehaviour
 {
@@ -39,35 +45,66 @@ public class SlidingDoor : MonoBehaviour
 
     void Start()
     {
-        // หา Animator อัตโนมัติถ้าไม่ได้ผูก
         if (doorAnimator == null)
             doorAnimator = GetComponent<Animator>();
 
         if (doorAnimator == null)
+        {
             Debug.LogError("[SlidingDoor] ไม่พบ Animator!");
+            return;
+        }
 
         _openHash = Animator.StringToHash(openParameterName);
         _audio    = GetComponent<AudioSource>();
 
-        // ตรวจ Parameter ใน Animator
-        if (doorAnimator != null)
-        {
-            bool found = false;
-            foreach (var param in doorAnimator.parameters)
-                if (param.name == openParameterName) { found = true; break; }
+        // ── ตรวจ Parameter ──
+        bool found = false;
+        foreach (var param in doorAnimator.parameters)
+            if (param.name == openParameterName) { found = true; break; }
 
-            if (!found)
-                Debug.LogError($"[SlidingDoor] ไม่พบ Bool Parameter '{openParameterName}' ใน Animator!");
-            else
-                Debug.Log("[SlidingDoor] Animator พร้อมแล้ว ✓");
+        if (!found)
+            Debug.LogError($"[SlidingDoor] ไม่พบ Bool Parameter '{openParameterName}' ใน Animator!");
+        else
+            Debug.Log("[SlidingDoor] Animator พร้อมแล้ว ✓");
+
+        // ── ปิด Loop Time ของ Clip DoorOpen อัตโนมัติ ──
+        DisableLoopOnDoorClip();
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  ปิด Loop ของ Animation Clip อัตโนมัติ
+    // ═══════════════════════════════════════════════════
+
+    void DisableLoopOnDoorClip()
+    {
+        if (doorAnimator == null || doorAnimator.runtimeAnimatorController == null) return;
+
+        foreach (var clip in doorAnimator.runtimeAnimatorController.animationClips)
+        {
+            // หา Clip ที่ไม่ใช่ Idle (ชื่อมี "Open", "Door" หรืออะไรก็ตามที่ไม่ใช่ Idle)
+            if (!clip.name.ToLower().Contains("idle"))
+            {
+                // AnimationClip.legacy ต้อง false เพื่อใช้ loopTime
+                if (clip.isLooping)
+                {
+                    // แจ้งให้รู้ว่า Clip ยัง Loop อยู่
+                    Debug.LogWarning($"[SlidingDoor] Clip '{clip.name}' ยังเปิด Loop Time อยู่!\n" +
+                                     "กรุณาปิด Loop Time ใน Animation Clip:\n" +
+                                     "Project → ดับเบิลคลิก Clip → Inspector → Loop Time ✗");
+                }
+                else
+                {
+                    Debug.Log($"[SlidingDoor] Clip '{clip.name}' Loop Time = Off ✓");
+                }
+            }
         }
     }
 
     // ═══════════════════════════════════════════════════
-    //  Public API — เรียกจาก KeypadUIBuilder
+    //  Public API
     // ═══════════════════════════════════════════════════
 
-    /// <summary>เปิดประตู (เรียกเมื่อรหัสถูก)</summary>
+    /// <summary>เปิดประตู — เรียกจาก KeypadUIBuilder เมื่อรหัสถูก</summary>
     public void ForceOpen()
     {
         if (_isOpen) return;
@@ -79,10 +116,10 @@ public class SlidingDoor : MonoBehaviour
         if (_audio != null && correctSound != null)
             _audio.PlayOneShot(correctSound);
 
-        Debug.Log("[SlidingDoor] ประตูเปิดแล้ว!");
+        Debug.Log("[SlidingDoor] ประตูเปิดแล้ว! ✓");
     }
 
-    /// <summary>เล่นเสียงผิด (เรียกเมื่อรหัสผิด)</summary>
+    /// <summary>เล่นเสียงผิด — เรียกเมื่อรหัสผิด</summary>
     public void PlayWrong()
     {
         if (_audio != null && wrongSound != null)
