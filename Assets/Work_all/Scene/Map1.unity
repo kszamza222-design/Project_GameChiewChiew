@@ -3025,7 +3025,9 @@ MonoBehaviour:
   nextSceneName: Map2
   doorTransform: {fileID: 795033467}
   doorRadius: 5
-  doorPromptText: Press E to enter next area
+  doorPromptAnchor: {fileID: 1342462020}
+  heightAbove: 2.2
+  boardRotation: {x: 0, y: 180, z: 0}
 --- !u!4 &115813984
 Transform:
   m_ObjectHideFlags: 0
@@ -28024,15 +28026,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -71.21
+      value: -73.66
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.71
+      value: 1.19
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 63.4
+      value: 66.2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalRotation.w
@@ -38094,15 +38096,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -67.76
+      value: -70.210014
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.71
+      value: 1.1900005
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 63.4
+      value: 66.2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -42552,6 +42554,27 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1c91d624950741b47a0c468e5c88eb36, type: 3}
   m_PrefabInstance: {fileID: 1940185879}
   m_PrefabAsset: {fileID: 0}
+--- !u!65 &1771697396
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1771697392}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 12.762724, y: 13.083604, z: 20.154003}
+  m_Center: {x: -0.11332388, y: 6.041805, z: 0.007239514}
 --- !u!4 &1772212338 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3567037069615095054, guid: f4201c8f49deb8844a1d1d79b62d845d, type: 3}
@@ -46167,6 +46190,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1c91d624950741b47a0c468e5c88eb36, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1771697393}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1c91d624950741b47a0c468e5c88eb36, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1771697396}
   m_SourcePrefab: {fileID: 100100000, guid: 1c91d624950741b47a0c468e5c88eb36, type: 3}
 --- !u!1001 &1940893933
 PrefabInstance:
