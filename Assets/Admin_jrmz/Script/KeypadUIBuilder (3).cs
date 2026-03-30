@@ -9,9 +9,9 @@ using TMPro;
 ///   Player1 (ซ้าย) กด E        → UI ขึ้นกลางจอซ้าย
 ///   Player2 (ขวา)  กด Numpad7  → UI ขึ้นกลางจอขวา
 ///
-/// แก้ไข:
-///   • ปุ่ม ESC เปลี่ยนเป็น TextMeshProUGUI ล้วน (ไม่มีกล่องพื้นหลัง)
-///   • เมื่อเปิดประตูสำเร็จแล้ว (_doorUnlocked = true) Keypad จะไม่ทำงานอีกเลย
+/// Public State (KeypadPromptUI อ่านได้):
+///   DoorUnlocked  — ประตูถูกปลดล็อคแล้ว
+///   IsKeypadOpen  — UI กรอกรหัสกำลังแสดงอยู่
 /// </summary>
 public class KeypadUIBuilder : MonoBehaviour
 {
@@ -35,6 +35,16 @@ public class KeypadUIBuilder : MonoBehaviour
     public float  triggerRadius = 3f;
 
     // ═══════════════════════════════════════════════════
+    //  Public State — KeypadPromptUI อ่านได้
+    // ═══════════════════════════════════════════════════
+
+    /// <summary>true = ประตูเปิดสำเร็จแล้ว (ถาวร)</summary>
+    public bool DoorUnlocked { get; private set; } = false;
+
+    /// <summary>true = UI กรอกรหัสกำลังแสดงอยู่</summary>
+    public bool IsKeypadOpen { get; private set; } = false;
+
+    // ═══════════════════════════════════════════════════
     //  Private
     // ═══════════════════════════════════════════════════
 
@@ -44,13 +54,7 @@ public class KeypadUIBuilder : MonoBehaviour
     TextMeshProUGUI _statusText;
 
     string           _input      = "";
-    bool             _isOpen     = false;
     PlayerController _nearPlayer = null;
-
-    /// <summary>
-    /// ประตูถูกปลดล็อคแล้ว — true = Keypad หยุดทำงานถาวร
-    /// </summary>
-    bool _doorUnlocked = false;
 
     SlidingDoor _door;
 
@@ -125,7 +129,7 @@ public class KeypadUIBuilder : MonoBehaviour
         MakeActionBtn(p, "OK",  new Vector2( 100,-205),
                       new Color(0.2f,0.55f,0.2f), PressOK);
 
-        // ── ESC — Text ล้วน ไม่มีกล่องพื้นหลัง ──────────────
+        // ── ESC — Text ล้วน ไม่มีกล่องพื้นหลัง ──
         MakeEscText(p, new Vector2(0, -275));
     }
 
@@ -163,29 +167,23 @@ public class KeypadUIBuilder : MonoBehaviour
         return tmp;
     }
 
-    // ── ESC Text ล้วน — ไม่มี Image พื้นหลัง ────────────────
     void MakeEscText(Transform parent, Vector2 pos)
     {
-        // GameObject มีแค่ RectTransform + TextMeshProUGUI + Button
-        // ไม่มี Image component → ไม่มีกล่องพื้นหลังสีใดๆ
         var go = new GameObject("Btn_ESC", typeof(RectTransform));
         go.transform.SetParent(parent, false);
-
         var rt = go.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = pos;
         rt.sizeDelta        = new Vector2(280, 44);
 
-        // Text
         var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text      = "ESC  —  Close";          // ภาษาอังกฤษ (TMP ไม่ต้องการ Font เพิ่ม)
+        tmp.text      = "ESC  —  Close";
         tmp.fontSize  = 22f;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color     = new Color(0.65f, 0.65f, 0.75f, 1f);   // เทาอมม่วงอ่อน
+        tmp.color     = new Color(0.65f, 0.65f, 0.75f, 1f);
 
-        // Button — ไม่มี targetGraphic → ใช้ null-safe mode
         var btn = go.AddComponent<Button>();
-        btn.targetGraphic = null;   // ไม่มี Graphic → ไม่แสดง highlight กล่อง
+        btn.targetGraphic = null;
         btn.onClick.AddListener(Close);
     }
 
@@ -228,19 +226,18 @@ public class KeypadUIBuilder : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════════
-    //  Update — ตรวจ Player เข้าใกล้ + กดเปิด UI
+    //  Update
     // ═══════════════════════════════════════════════════
 
     void Update()
     {
-        // ── ประตูเปิดแล้ว = หยุดทำงานทั้งหมด ──────────────
-        if (_doorUnlocked) return;
+        // ── ประตูเปิดแล้ว = หยุดทำงานทั้งหมด ──
+        if (DoorUnlocked) return;
 
         CheckNearby();
         HandleOpenKey();
     }
 
-    // ── หา Player ที่อยู่ใกล้ Keypad ────────────────────
     void CheckNearby()
     {
         _nearPlayer = null;
@@ -254,17 +251,12 @@ public class KeypadUIBuilder : MonoBehaviour
             _nearPlayer = player2;
     }
 
-    // ── ตรวจปุ่มเปิด UI ──────────────────────────────
     void HandleOpenKey()
     {
-        if (_nearPlayer == null || _isOpen) return;
+        if (_nearPlayer == null || IsKeypadOpen) return;
 
-        bool openPressed = false;
-
-        if      (_nearPlayer == player1 && Input.GetKeyDown(KeyCode.E))
-            openPressed = true;
-        else if (_nearPlayer == player2 && Input.GetKeyDown(KeyCode.Keypad7))
-            openPressed = true;
+        bool openPressed = (_nearPlayer == player1 && Input.GetKeyDown(KeyCode.E))
+                        || (_nearPlayer == player2 && Input.GetKeyDown(KeyCode.Keypad7));
 
         if (openPressed) Open(_nearPlayer);
     }
@@ -275,38 +267,30 @@ public class KeypadUIBuilder : MonoBehaviour
 
     void Open(PlayerController player)
     {
-        // ป้องกันเปิดซ้ำหลังปลดล็อค
-        if (_doorUnlocked) return;
+        if (DoorUnlocked) return;
 
-        _isOpen = true;
-        _input  = "";
+        IsKeypadOpen = true;   // ← แจ้ง KeypadPromptUI ให้ซ่อน Prompt
+        _input = "";
         UpdateDisplay();
         SetStatus("", Color.white);
-
-        // จัดตำแหน่ง Panel ให้อยู่กลางจอของ Player นั้น
         PositionPanel(player);
-
         _panel.SetActive(true);
     }
 
     void Close()
     {
-        _isOpen = false;
+        IsKeypadOpen = false;   // ← แจ้ง KeypadPromptUI ให้แสดง Prompt อีกครั้ง
         _panel.SetActive(false);
         _input = "";
     }
 
-    // ── คำนวณ anchoredPosition ให้กลางจอฝั่งนั้น ─────
     void PositionPanel(PlayerController player)
     {
-        // Canvas ต้องเป็น Screen Space - Overlay
-        // จอซ้าย = x ที่ 25% ของ Screen, จอขวา = x ที่ 75%
         bool isP1 = (player == player1);
 
         float screenX = isP1 ? Screen.width * 0.25f : Screen.width * 0.75f;
         float screenY = Screen.height * 0.5f;
 
-        // แปลง Screen → Canvas local position
         RectTransform canvasRT = targetCanvas.GetComponent<RectTransform>();
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             canvasRT,
@@ -344,13 +328,12 @@ public class KeypadUIBuilder : MonoBehaviour
         {
             SetStatus("CORRECT  —  UNLOCKED", new Color(0.3f, 1f, 0.4f));
 
-            // เปิดประตู
             if (_door != null) _door.ForceOpen();
 
-            // ── ล็อค Keypad ถาวร ──────────────────────────
-            _doorUnlocked = true;
+            // ── ล็อคถาวร ──
+            DoorUnlocked = true;   // ← KeypadPromptUI จะซ่อน Prompt ถาวร
+            IsKeypadOpen = false;
 
-            // ปิด UI หลัง 1.5 วินาที
             Invoke(nameof(Close), 1.5f);
         }
         else
@@ -377,15 +360,10 @@ public class KeypadUIBuilder : MonoBehaviour
     {
         if (_display == null) return;
 
-        // แสดงตัวเลขที่กดแล้ว + ขีดสำหรับช่องที่ยังว่าง
-        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        var sb = new System.Text.StringBuilder();
         for (int i = 0; i < correctCode.Length; i++)
         {
-            if (i < _input.Length)
-                sb.Append(_input[i]);
-            else
-                sb.Append('_');
-
+            sb.Append(i < _input.Length ? _input[i] : '_');
             if (i < correctCode.Length - 1) sb.Append(' ');
         }
         _display.text = sb.ToString();
@@ -404,7 +382,7 @@ public class KeypadUIBuilder : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = _doorUnlocked ? Color.green : Color.cyan;
+        Gizmos.color = DoorUnlocked ? Color.green : Color.cyan;
         Gizmos.DrawWireSphere(transform.position, triggerRadius);
     }
 }
