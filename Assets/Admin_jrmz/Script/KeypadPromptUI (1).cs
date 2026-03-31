@@ -3,8 +3,13 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// KeypadPromptUI — ป้าย 3D เหนือประตู Keypad (พร้อมวงกลม progress ฝั่งขวา)
-/// ส่ง ref ของ RingFill ให้ KeypadUIBuilder เพื่อ animate
+/// KeypadPromptUI — UI ลอยเหนือประตู
+///
+/// วิธีใช้:
+///   1. ติด Script นี้กับ GameObject ของ Keypad/ประตู
+///   2. ลาก "Prompt Anchor" (Empty GameObject ที่วางไว้หน้าประตู) มาใส่ช่อง promptAnchor
+///      ถ้าไม่ใส่ จะใช้ตำแหน่งของ GameObject นี้แทน + heightAboveKeypad
+///   3. ผูก Player1, Player2
 /// </summary>
 [RequireComponent(typeof(KeypadUIBuilder))]
 public class KeypadPromptUI : MonoBehaviour
@@ -18,29 +23,32 @@ public class KeypadPromptUI : MonoBehaviour
     public PlayerController player2;
 
     [Header("── Prompt Position ─────────────────")]
+    [Tooltip("ลาก Empty GameObject ที่วางไว้หน้าประตูมาใส่ตรงนี้\n" +
+             "ถ้าว่างจะใช้ตำแหน่ง GameObject นี้ + heightAboveKeypad")]
     public Transform promptAnchor;
-    public float     heightAboveKeypad = 2.2f;
+    [Tooltip("ความสูงเหนือ GameObject นี้ (ใช้เมื่อไม่ได้ผูก promptAnchor)")]
+    public float heightAboveKeypad = 2.2f;
 
     [Header("── Show Radius ──────────────────────")]
+    [Tooltip("รัศมีที่ UI จะแสดงเมื่อผู้เล่นเข้ามาใกล้")]
     public float showRadius = 3f;
 
-    [Header("── Board Rotation ──────────────────")]
+    [Header("── Board Rotation ─────────────────")]
+    [Tooltip("ปรับ Y เพื่อหมุนป้ายซ้าย/ขวาให้หันถูกทิศ\n0=+Z  90=+X  180=-Z  270=-X")]
     public Vector3 boardRotation = new Vector3(0f, 180f, 0f);
 
     // ═══════════════════════════════════════════════════
     //  Colors
     // ═══════════════════════════════════════════════════
 
-    static readonly Color ColBg       = new Color(0.06f, 0.06f, 0.09f, 0.96f);
-    static readonly Color ColBorder   = new Color(0.85f, 0.55f, 0.08f, 1.00f);
-    static readonly Color ColAccent   = new Color(0.94f, 0.62f, 0.15f, 1.00f);
-    static readonly Color ColKeyBg    = new Color(0.14f, 0.14f, 0.20f, 1.00f);
-    static readonly Color ColKeyBdr   = new Color(0.70f, 0.45f, 0.05f, 1.00f);
-    static readonly Color ColTextKey  = new Color(1.00f, 0.80f, 0.20f, 1.00f);
-    static readonly Color ColTextSub  = new Color(0.80f, 0.80f, 0.82f, 1.00f);
-    static readonly Color ColOr       = new Color(0.50f, 0.50f, 0.54f, 1.00f);
-    static readonly Color ColRingBg   = new Color(0.12f, 0.12f, 0.18f, 1.00f);
-    static readonly Color ColRingFill = new Color(0.94f, 0.75f, 0.15f, 1.00f);
+    static readonly Color ColBg      = new Color(0.06f, 0.06f, 0.09f, 0.96f);
+    static readonly Color ColBorder  = new Color(0.85f, 0.55f, 0.08f, 1.00f);
+    static readonly Color ColAccent  = new Color(0.94f, 0.62f, 0.15f, 1.00f);
+    static readonly Color ColKeyBg   = new Color(0.14f, 0.14f, 0.20f, 1.00f);
+    static readonly Color ColKeyBdr  = new Color(0.70f, 0.45f, 0.05f, 1.00f);
+    static readonly Color ColTextKey = new Color(1.00f, 0.80f, 0.20f, 1.00f);
+    static readonly Color ColTextSub = new Color(0.80f, 0.80f, 0.82f, 1.00f);
+    static readonly Color ColOr      = new Color(0.50f, 0.50f, 0.54f, 1.00f);
 
     // ═══════════════════════════════════════════════════
     //  Private
@@ -67,12 +75,14 @@ public class KeypadPromptUI : MonoBehaviour
     {
         if (_board == null) return;
 
+        // ถ้าประตูเปิดแล้ว ซ่อนถาวร
         if (_builder != null && _builder.DoorUnlocked)
         {
             _board.SetActive(false);
             return;
         }
 
+        // ตรวจระยะผู้เล่น (อ้างอิงจาก transform ของ script นี้เสมอ)
         bool p1Near = player1 != null &&
                       Vector3.Distance(player1.transform.position, transform.position) <= showRadius;
         bool p2Near = player2 != null &&
@@ -82,186 +92,173 @@ public class KeypadPromptUI : MonoBehaviour
                           (_builder == null || !_builder.IsKeypadOpen);
 
         _board.SetActive(shouldShow);
-        if (shouldShow)
-            _board.transform.rotation = Quaternion.Euler(boardRotation);
+
+        // หมุนป้ายตามที่กำหนดใน Inspector (ปรับ Y ใน Inspector เพื่อหันให้ถูกทิศ)
+        _board.transform.rotation = Quaternion.Euler(boardRotation);
     }
 
     // ═══════════════════════════════════════════════════
     //  BuildBoard
     //
-    //  ┌─────────────────────────────────────────────┐
-    //  ║▌  [E]  or  [Numpad7]  enter code   ╭────╮  ║
-    //  ║                                    │ ◉  │  ║
-    //  └─────────────────────────────────────────────┘
+    //  ขนาด Canvas : 260 px × 68 px (localScale 0.01 → 2.6m × 0.68m)
+    //
+    //  ┌──────────────────────────────────────────┐
+    //  ║ ▌  [ E ]  or  [ Numpad ]                 ║
+    //  ║     Press E or Numpad to enter door code  ║
+    //  └──────────────────────────────────────────┘
     // ═══════════════════════════════════════════════════
 
     void BuildBoard()
     {
+        // ── หาตำแหน่งวาง Board ──────────────────────
         Vector3 worldPos = promptAnchor != null
             ? promptAnchor.position
             : transform.position + Vector3.up * heightAboveKeypad;
 
+        // ── Root (World-space Canvas) ────────────────
         _board = new GameObject("_PromptBoard");
         _board.transform.position   = worldPos;
         _board.transform.rotation   = Quaternion.identity;
+        // localScale 0.01 → 1 px = 0.01 m
         _board.transform.localScale = Vector3.one * 0.01f;
 
         var canvas        = _board.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
 
-        const float W = 320f;
-        const float H =  72f;
+        // ขนาด canvas ใน px
+        const float W = 260f;
+        const float H =  68f;
 
         var rootRT       = _board.GetComponent<RectTransform>();
         rootRT.sizeDelta = new Vector2(W, H);
 
-        // Border
+        // ─── ขอบ (Border) ───────────────────────────
         Img(_board.transform, "Border", 0, 0, W, H, ColBorder);
 
-        // BG
+        // ─── พื้นหลังดำ ───────────────────────────────
         const float bpx = 1.5f;
-        Img(_board.transform, "BG", 0, 0, W - bpx * 2f, H - bpx * 2f, ColBg);
+        Img(_board.transform, "BG",
+            0, 0,
+            W - bpx * 2f,
+            H - bpx * 2f,
+            ColBg);
 
-        // Accent
-        const float acW = 5.5f, acH = H - bpx * 2f;
+        // ─── Accent bar ซ้าย ─────────────────────────
+        const float acW = 5.5f;
+        const float acH = H - bpx * 2f;
         float acX = -(W / 2f - bpx - acW / 2f);
         Img(_board.transform, "Accent", acX, 0, acW, acH, ColAccent);
 
-        float cStartX = acX + acW / 2f + 8f;
+        // ─── Content เริ่มหลัง accent ─────────────────
+        float cStartX = acX + acW / 2f + 8f;   // 8 px gap หลัง accent
 
-        // Row 1: badges
-        const float rowY = 13f, badgeH = 22f;
+        // ─── Row 1 (y = +14 px): [ E ]  or  [ Numpad ] ──
+        const float rowY   = 13f;
+        const float badgeH = 22f;
 
+        // Badge [E]
         const float eW = 30f;
         float eX = cStartX + eW / 2f;
         Badge(_board.transform, "E", eX, rowY, eW, badgeH);
 
+        // "or"
         const float orW = 18f;
         float orX = eX + eW / 2f + 4f + orW / 2f;
-        TMP(_board.transform, "Or", "or", orX, rowY, orW, badgeH, 8.5f, ColOr);
+        TMP(_board.transform, "Or", "or",
+            orX, rowY, orW, badgeH, 8.5f, ColOr);
 
-        const float nW = 58f;
+        // Badge [Numpad]
+        const float nW = 52f;
         float nX = orX + orW / 2f + 4f + nW / 2f;
         Badge(_board.transform, "Numpad7", nX, rowY, nW, badgeH);
 
-        // Row 2: subtext (เว้นที่วงขวา)
-        const float ringAreaW = 58f;
-        float subW = W - bpx * 2f - acW - 10f - ringAreaW - 4f;
+        // ─── Row 2 (y = -12 px): subtext ──────────────
+        const float subY = -12f;
+        float subW = W - bpx * 2f - acW - 10f;
         float subX = cStartX + subW / 2f;
-        TMP(_board.transform, "Sub", "Hold E or Numpad7 to enter door code",
-            subX, -12f, subW, 16f, 7f, ColTextSub);
-
-        // ── Ring ──────────────────────────────────────
-        const float ringOuter = 48f;
-        const float ringThick =  7f;
-        const float ringInner = ringOuter - ringThick * 2f;
-        float ringCX = W / 2f - bpx - ringAreaW / 2f - 2f;
-
-        var bgRingGO = new GameObject("RingBg", typeof(RectTransform), typeof(Image));
-        bgRingGO.transform.SetParent(_board.transform, false);
-        var bgRingRT = bgRingGO.GetComponent<RectTransform>();
-        bgRingRT.anchorMin = bgRingRT.anchorMax = bgRingRT.pivot = new Vector2(0.5f, 0.5f);
-        bgRingRT.sizeDelta        = new Vector2(ringOuter, ringOuter);
-        bgRingRT.anchoredPosition = new Vector2(ringCX, 0f);
-        bgRingGO.GetComponent<Image>().color = ColRingBg;
-
-        var fillGO = new GameObject("RingFill", typeof(RectTransform), typeof(Image));
-        fillGO.transform.SetParent(_board.transform, false);
-        var fillRT = fillGO.GetComponent<RectTransform>();
-        fillRT.anchorMin = fillRT.anchorMax = fillRT.pivot = new Vector2(0.5f, 0.5f);
-        fillRT.sizeDelta        = new Vector2(ringOuter, ringOuter);
-        fillRT.anchoredPosition = new Vector2(ringCX, 0f);
-        var ringFill            = fillGO.GetComponent<Image>();
-        ringFill.color          = ColRingFill;
-        ringFill.type           = Image.Type.Filled;
-        ringFill.fillMethod     = Image.FillMethod.Radial360;
-        ringFill.fillOrigin     = (int)Image.Origin360.Top;
-        ringFill.fillClockwise  = true;
-        ringFill.fillAmount     = 0f;
-
-        // ส่ง ref ให้ KeypadUIBuilder animate
-        _builder?.SetRingRef(ringFill);
-
-        var innerGO = new GameObject("RingInner", typeof(RectTransform), typeof(Image));
-        innerGO.transform.SetParent(_board.transform, false);
-        var innerRT = innerGO.GetComponent<RectTransform>();
-        innerRT.anchorMin = innerRT.anchorMax = innerRT.pivot = new Vector2(0.5f, 0.5f);
-        innerRT.sizeDelta        = new Vector2(ringInner, ringInner);
-        innerRT.anchoredPosition = new Vector2(ringCX, 0f);
-        innerGO.GetComponent<Image>().color = ColBg;
-
-        var lblGO = new GameObject("RingLabel", typeof(RectTransform));
-        lblGO.transform.SetParent(_board.transform, false);
-        var lblRT = lblGO.GetComponent<RectTransform>();
-        lblRT.anchorMin = lblRT.anchorMax = lblRT.pivot = new Vector2(0.5f, 0.5f);
-        lblRT.sizeDelta        = new Vector2(ringInner, ringInner);
-        lblRT.anchoredPosition = new Vector2(ringCX, 0f);
-        var lbl    = lblGO.AddComponent<TextMeshProUGUI>();
-        lbl.text      = "E\n<size=60%>/ 7</size>";
-        lbl.fontSize  = 12f;
-        lbl.fontStyle = FontStyles.Bold;
-        lbl.alignment = TextAlignmentOptions.Center;
-        lbl.color     = ColTextKey;
+        TMP(_board.transform, "Sub",
+            "Press E or Numpad7 to enter door code",
+            subX, subY, subW, 16f, 7f, ColTextSub);
 
         _board.SetActive(false);
     }
 
-    // ─── UI Helpers ──────────────────────────────────
+    // ═══════════════════════════════════════════════════
+    //  Badge: ขอบ → พื้น → ข้อความ
+    //  แต่ละ layer ใช้ siblingIndex ต่างกัน → ไม่ซ้อนทับ
+    // ═══════════════════════════════════════════════════
 
-    void Img(Transform parent, string name, float x, float y, float w, float h, Color col)
+    void Badge(Transform parent, string label,
+               float cx, float cy, float w, float h)
     {
-        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(parent, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(x, y);
-        rt.sizeDelta        = new Vector2(w, h);
-        go.GetComponent<Image>().color = col;
+        const float bi = 1.2f;
+        Img(parent, "BBdr_" + label, cx, cy, w,           h,           ColKeyBdr);
+        Img(parent, "BBg_"  + label, cx, cy, w - bi * 2f, h - bi * 2f, ColKeyBg);
+        TMP(parent, "BTxt_" + label,
+            label,
+            cx, cy,
+            w - bi * 2f, h,
+            h * 0.52f,
+            ColTextKey);
     }
 
-    void TMP(Transform parent, string name, string text,
-             float x, float y, float w, float h, float fontSize, Color col)
+    // ═══════════════════════════════════════════════════
+    //  Img helper
+    // ═══════════════════════════════════════════════════
+
+    void Img(Transform parent, string goName,
+             float cx, float cy, float w, float h, Color color)
     {
-        var go = new GameObject(name, typeof(RectTransform));
+        var go = new GameObject(goName, typeof(RectTransform), typeof(Image));
         go.transform.SetParent(parent, false);
+
         var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(x, y);
+        rt.anchorMin        = new Vector2(0.5f, 0.5f);
+        rt.anchorMax        = new Vector2(0.5f, 0.5f);
+        rt.pivot            = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(cx, cy);
         rt.sizeDelta        = new Vector2(w, h);
+
+        go.GetComponent<Image>().color = color;
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  TMP helper
+    // ═══════════════════════════════════════════════════
+
+    void TMP(Transform parent, string goName, string text,
+             float cx, float cy, float w, float h,
+             float fontSize, Color color)
+    {
+        var go = new GameObject(goName, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin        = new Vector2(0.5f, 0.5f);
+        rt.anchorMax        = new Vector2(0.5f, 0.5f);
+        rt.pivot            = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(cx, cy);
+        rt.sizeDelta        = new Vector2(w, h);
+
         var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text      = text;
-        tmp.fontSize  = fontSize;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color     = col;
+        tmp.text               = text;
+        tmp.fontSize           = fontSize;
+        tmp.alignment          = TextAlignmentOptions.Center;
+        tmp.color              = color;
+        tmp.fontStyle          = FontStyles.Bold;
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode       = TextOverflowModes.Overflow;
     }
 
-    void Badge(Transform parent, string label, float x, float y, float w, float h)
+    // ═══════════════════════════════════════════════════
+    //  Public API
+    // ═══════════════════════════════════════════════════
+
+    /// <summary>เปลี่ยนจุดแสดง UI ระหว่าง Runtime</summary>
+    public void SetPromptAnchor(Transform anchor)
     {
-        var outer = new GameObject("Badge_" + label, typeof(RectTransform), typeof(Image));
-        outer.transform.SetParent(parent, false);
-        var oRT = outer.GetComponent<RectTransform>();
-        oRT.anchorMin = oRT.anchorMax = oRT.pivot = new Vector2(0.5f, 0.5f);
-        oRT.anchoredPosition = new Vector2(x, y);
-        oRT.sizeDelta        = new Vector2(w, h);
-        outer.GetComponent<Image>().color = ColKeyBdr;
-
-        const float bp = 1.2f;
-        var inner = new GameObject("BG", typeof(RectTransform), typeof(Image));
-        inner.transform.SetParent(outer.transform, false);
-        var iRT = inner.GetComponent<RectTransform>();
-        iRT.anchorMin = Vector2.zero; iRT.anchorMax = Vector2.one;
-        iRT.offsetMin = new Vector2(bp, bp); iRT.offsetMax = new Vector2(-bp, -bp);
-        inner.GetComponent<Image>().color = ColKeyBg;
-
-        var tGO = new GameObject("Lbl", typeof(RectTransform));
-        tGO.transform.SetParent(outer.transform, false);
-        var tRT = tGO.GetComponent<RectTransform>();
-        tRT.anchorMin = Vector2.zero; tRT.anchorMax = Vector2.one;
-        tRT.offsetMin = Vector2.zero; tRT.offsetMax = Vector2.zero;
-        var tmp = tGO.AddComponent<TextMeshProUGUI>();
-        tmp.text      = label;
-        tmp.fontSize  = 9f;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color     = ColTextKey;
+        promptAnchor = anchor;
+        if (_board != null && anchor != null)
+            _board.transform.position = anchor.position;
     }
 }
