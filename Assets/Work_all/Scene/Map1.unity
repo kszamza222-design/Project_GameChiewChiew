@@ -3028,7 +3028,6 @@ MonoBehaviour:
   doorPromptAnchor: {fileID: 1342462020}
   heightAbove: 2.2
   boardRotation: {x: 0, y: 46, z: 0}
-  holdDuration: 1.2
 --- !u!4 &115813984
 Transform:
   m_ObjectHideFlags: 0
@@ -27673,7 +27672,6 @@ MonoBehaviour:
   cameraP2: {fileID: 1437592043}
   correctCode: 1112
   triggerRadius: 3
-  holdDuration: 1.2
 --- !u!114 &1200093668
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29567,28 +29565,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1255158346}
-  - component: {fileID: 1255158345}
+  - component: {fileID: 1255158347}
   m_Layer: 0
-  m_Name: 'HoldProgressUI '
+  m_Name: ControlsHintUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1255158345
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1255158344}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7fccc7e906e84ff4aa2de4b84b8f45ef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HoldProgressUI
-  targetCanvas: {fileID: 1439346213}
-  holdDuration: 1.2
 --- !u!4 &1255158346
 Transform:
   m_ObjectHideFlags: 0
@@ -29604,6 +29588,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1255158347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1255158344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8db39c716c4804a44a46ba6c43f7905a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ControlsHintUI
+  targetCanvas: {fileID: 1439346213}
+  toggleKeyP1: 9
+  toggleKeyP2: 270
+  panelOffsetP1: {x: -4, y: 100}
+  toggleOffsetP1: {x: -40, y: 500}
+  panelOffsetP2: {x: -85, y: 100}
+  toggleOffsetP2: {x: -120, y: 500}
 --- !u!1 &1256711192 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 4e32bfe4347579642a55a115afc920b1, type: 3}
@@ -42596,7 +42599,6 @@ MonoBehaviour:
   showRadius: 3
   boardRotation: {x: 0, y: 329.5, z: 0}
   keyInventory: {fileID: 115813983}
-  holdDuration: 1.2
   notifyDuration: 3
 --- !u!4 &1771697395 stripped
 Transform:
