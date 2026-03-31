@@ -3,15 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// KeypadUIBuilder — UI กรอกรหัสผ่านกลางจอของ Player ที่กด
-///
-/// Split-Screen:
-///   Player1 (ซ้าย) กด E        → UI ขึ้นกลางจอซ้าย
-///   Player2 (ขวา)  กด Numpad7  → UI ขึ้นกลางจอขวา
-///
-/// Public State (KeypadPromptUI อ่านได้):
-///   DoorUnlocked  — ประตูถูกปลดล็อคแล้ว
-///   IsKeypadOpen  — UI กรอกรหัสกำลังแสดงอยู่
+/// KeypadUIBuilder — UI กรอกรหัสผ่าน
+/// ค้างปุ่ม E / Numpad7 (วงวิ่งในป้าย 3D) → ครบ → เปิด Keypad UI
 /// </summary>
 public class KeypadUIBuilder : MonoBehaviour
 {
@@ -25,24 +18,33 @@ public class KeypadUIBuilder : MonoBehaviour
     [Header("── Players & Cameras ───────────────")]
     public PlayerController player1;
     public PlayerController player2;
-    [Tooltip("Camera ของ Player1 (ฝั่งซ้าย)")]
     public Camera cameraP1;
-    [Tooltip("Camera ของ Player2 (ฝั่งขวา)")]
     public Camera cameraP2;
 
     [Header("── Settings ────────────────────────")]
     public string correctCode   = "1234";
     public float  triggerRadius = 3f;
 
+    [Header("── Timing ───────────────────────────")]
+    [Tooltip("วินาทีที่ต้องค้างปุ่มเพื่อเปิด Keypad")]
+    public float holdDuration = 1.2f;
+
     // ═══════════════════════════════════════════════════
-    //  Public State — KeypadPromptUI อ่านได้
+    //  Public State
     // ═══════════════════════════════════════════════════
 
-    /// <summary>true = ประตูเปิดสำเร็จแล้ว (ถาวร)</summary>
     public bool DoorUnlocked { get; private set; } = false;
-
-    /// <summary>true = UI กรอกรหัสกำลังแสดงอยู่</summary>
     public bool IsKeypadOpen { get; private set; } = false;
+
+    // ═══════════════════════════════════════════════════
+    //  Colors
+    // ═══════════════════════════════════════════════════
+
+    static readonly Color ColRingBg   = new Color(0.12f, 0.12f, 0.18f, 1.00f);
+    static readonly Color ColRingFill = new Color(0.94f, 0.75f, 0.15f, 1.00f);
+    static readonly Color ColRingDone = new Color(0.25f, 0.95f, 0.45f, 1.00f);
+    static readonly Color ColBg       = new Color(0.06f, 0.06f, 0.09f, 0.96f);
+    static readonly Color ColTextKey  = new Color(1.00f, 0.80f, 0.20f, 1.00f);
 
     // ═══════════════════════════════════════════════════
     //  Private
@@ -53,10 +55,18 @@ public class KeypadUIBuilder : MonoBehaviour
     TextMeshProUGUI _display;
     TextMeshProUGUI _statusText;
 
-    string           _input      = "";
-    PlayerController _nearPlayer = null;
+    string           _input       = "";
+    PlayerController _nearPlayer  = null;
+    bool             _isP1Opening = false;
 
     SlidingDoor _door;
+
+    // Hold ring (อยู่ใน KeypadPromptUI board — แต่ KeypadUIBuilder สร้าง ring เองใน panel)
+    // *** ring ในป้าย 3D ถูกสร้างโดย KeypadPromptUI ***
+    // KeypadUIBuilder รับ ref จาก KeypadPromptUI ผ่าน SetRingRef()
+    Image _ringFill;
+    float _holdTimer = 0f;
+    bool  _fired     = false;
 
     // ═══════════════════════════════════════════════════
     //  Init
@@ -65,165 +75,11 @@ public class KeypadUIBuilder : MonoBehaviour
     void Awake()
     {
         _door = FindObjectOfType<SlidingDoor>();
-        if (_door == null)
-            Debug.LogError("[Keypad] ไม่พบ SlidingDoor ในฉาก!");
-
         BuildUI();
     }
 
-    // ═══════════════════════════════════════════════════
-    //  Build UI
-    // ═══════════════════════════════════════════════════
-
-    void BuildUI()
-    {
-        if (targetCanvas == null)
-        {
-            Debug.LogError("[Keypad] ยังไม่ได้ผูก Target Canvas!");
-            return;
-        }
-
-        Transform root = targetCanvas.transform;
-
-        // Panel
-        _panel   = MakeImage(root, "KeypadPanel",
-                             Vector2.zero, new Vector2(340, 580),
-                             new Color(0.08f, 0.08f, 0.12f, 0.97f));
-        _panelRT = _panel.GetComponent<RectTransform>();
-        _panel.SetActive(false);
-
-        Transform p = _panel.transform;
-
-        // หัวข้อ
-        MakeText(p, "Title", "[ KEYPAD ]",
-                 new Vector2(0, 245), new Vector2(300, 50), 28,
-                 new Color(0.4f, 0.8f, 1f));
-
-        // Display รหัส
-        var dispGo = MakeImage(p, "DisplayBG",
-                               new Vector2(0, 180), new Vector2(280, 60),
-                               new Color(0.02f, 0.02f, 0.05f, 1f));
-        _display = MakeText(dispGo.transform, "DisplayText", "_ _ _ _",
-                            Vector2.zero, new Vector2(280, 60), 38, Color.white);
-
-        // Status
-        _statusText = MakeText(p, "Status", "",
-                               new Vector2(0, 125), new Vector2(280, 36), 20,
-                               new Color(1f, 0.4f, 0.4f));
-
-        // ── ปุ่มตัวเลข ──
-        MakeNumBtn(p, 1, new Vector2(-100,  65));
-        MakeNumBtn(p, 2, new Vector2(   0,  65));
-        MakeNumBtn(p, 3, new Vector2( 100,  65));
-        MakeNumBtn(p, 4, new Vector2(-100, -25));
-        MakeNumBtn(p, 5, new Vector2(   0, -25));
-        MakeNumBtn(p, 6, new Vector2( 100, -25));
-        MakeNumBtn(p, 7, new Vector2(-100,-115));
-        MakeNumBtn(p, 8, new Vector2(   0,-115));
-        MakeNumBtn(p, 9, new Vector2( 100,-115));
-
-        // DEL  0  OK
-        MakeActionBtn(p, "DEL", new Vector2(-100,-205),
-                      new Color(0.6f,0.2f,0.2f), PressDelete);
-        MakeNumBtn(p, 0, new Vector2(0,-205));
-        MakeActionBtn(p, "OK",  new Vector2( 100,-205),
-                      new Color(0.2f,0.55f,0.2f), PressOK);
-
-        // ── ESC — Text ล้วน ไม่มีกล่องพื้นหลัง ──
-        MakeEscText(p, new Vector2(0, -275));
-    }
-
-    // ═══════════════════════════════════════════════════
-    //  UI Helpers
-    // ═══════════════════════════════════════════════════
-
-    GameObject MakeImage(Transform parent, string name,
-                         Vector2 pos, Vector2 size, Color color)
-    {
-        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(parent, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = pos;
-        rt.sizeDelta        = size;
-        go.GetComponent<Image>().color = color;
-        return go;
-    }
-
-    TextMeshProUGUI MakeText(Transform parent, string name, string text,
-                             Vector2 pos, Vector2 size, float fontSize, Color color)
-    {
-        var go = new GameObject(name, typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = pos;
-        rt.sizeDelta        = size;
-        var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text      = text;
-        tmp.fontSize  = fontSize;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color     = color;
-        return tmp;
-    }
-
-    void MakeEscText(Transform parent, Vector2 pos)
-    {
-        var go = new GameObject("Btn_ESC", typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = pos;
-        rt.sizeDelta        = new Vector2(280, 44);
-
-        var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text      = "ESC  —  Close";
-        tmp.fontSize  = 22f;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color     = new Color(0.65f, 0.65f, 0.75f, 1f);
-
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = null;
-        btn.onClick.AddListener(Close);
-    }
-
-    void MakeNumBtn(Transform parent, int num, Vector2 pos)
-    {
-        int n = num;
-        MakeActionBtn(parent, num.ToString(), pos,
-                      new Color(0.22f, 0.22f, 0.32f), () => PressNumber(n));
-    }
-
-    void MakeActionBtn(Transform parent, string label, Vector2 pos,
-                       Color bgColor, UnityEngine.Events.UnityAction onClick)
-    {
-        var sz = new Vector2(82, 72);
-        float fz = label.Length > 2 ? 18f : 28f;
-
-        var go = new GameObject("Btn_" + label,
-                                typeof(RectTransform), typeof(Image), typeof(Button));
-        go.transform.SetParent(parent, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = pos;
-        rt.sizeDelta        = sz;
-
-        var img = go.GetComponent<Image>();
-        img.color = bgColor;
-
-        var btn = go.GetComponent<Button>();
-        var cb  = btn.colors;
-        cb.normalColor      = bgColor;
-        cb.highlightedColor = bgColor * 1.4f;
-        cb.pressedColor     = bgColor * 0.6f;
-        cb.fadeDuration     = 0.05f;
-        btn.colors          = cb;
-        btn.targetGraphic   = img;
-        btn.onClick.AddListener(onClick);
-
-        MakeText(go.transform, "Label", label,
-                 Vector2.zero, sz, fz, Color.white);
-    }
+    /// <summary>KeypadPromptUI เรียกเพื่อส่ง ref ของ ring fill ในป้าย 3D</summary>
+    public void SetRingRef(Image ringFill) => _ringFill = ringFill;
 
     // ═══════════════════════════════════════════════════
     //  Update
@@ -231,82 +87,116 @@ public class KeypadUIBuilder : MonoBehaviour
 
     void Update()
     {
-        // ── ประตูเปิดแล้ว = หยุดทำงานทั้งหมด ──
         if (DoorUnlocked) return;
-
-        CheckNearby();
-        HandleOpenKey();
-    }
-
-    void CheckNearby()
-    {
-        _nearPlayer = null;
-
-        if (player1 != null &&
-            Vector3.Distance(transform.position, player1.transform.position) <= triggerRadius)
-            _nearPlayer = player1;
-
-        else if (player2 != null &&
-                 Vector3.Distance(transform.position, player2.transform.position) <= triggerRadius)
-            _nearPlayer = player2;
-    }
-
-    void HandleOpenKey()
-    {
-        if (_nearPlayer == null || IsKeypadOpen) return;
-
-        bool openPressed = (_nearPlayer == player1 && Input.GetKeyDown(KeyCode.E))
-                        || (_nearPlayer == player2 && Input.GetKeyDown(KeyCode.Keypad7));
-
-        if (openPressed) Open(_nearPlayer);
+        HandleHoldInput();
+        HandleKeypadInput();
     }
 
     // ═══════════════════════════════════════════════════
-    //  Open / Close
+    //  HandleHoldInput — ค้างปุ่มเพื่อเปิด Keypad
     // ═══════════════════════════════════════════════════
 
-    void Open(PlayerController player)
+    void HandleHoldInput()
     {
-        if (DoorUnlocked) return;
+        if (IsKeypadOpen) return;
 
-        IsKeypadOpen = true;   // ← แจ้ง KeypadPromptUI ให้ซ่อน Prompt
-        _input = "";
+        bool p1Near    = player1 != null &&
+                         Vector3.Distance(player1.transform.position, transform.position) <= triggerRadius;
+        bool p2Near    = player2 != null &&
+                         Vector3.Distance(player2.transform.position, transform.position) <= triggerRadius;
+
+        bool p1Holding = p1Near && Input.GetKey(KeyCode.E);
+        bool p2Holding = p2Near && Input.GetKey(KeyCode.Keypad7);
+        bool anyHold   = p1Holding || p2Holding;
+
+        if (p1Holding) _isP1Opening = true;
+        if (p2Holding) _isP1Opening = false;
+
+        if (anyHold && !_fired)
+        {
+            _holdTimer += Time.deltaTime / holdDuration;
+            _holdTimer  = Mathf.Clamp01(_holdTimer);
+            SetRing(_holdTimer);
+
+            if (_holdTimer >= 1f)
+            {
+                _fired = true;
+                ResetRing();
+                OpenKeypad(_isP1Opening);
+            }
+        }
+        else if (!anyHold)
+        {
+            if (_holdTimer > 0f)
+            {
+                _holdTimer -= Time.deltaTime / holdDuration * 2.5f;
+                _holdTimer  = Mathf.Max(0f, _holdTimer);
+                SetRing(_holdTimer);
+            }
+            _fired = false;
+        }
+    }
+
+    void SetRing(float t)
+    {
+        if (_ringFill == null) return;
+        _ringFill.fillAmount = t;
+        _ringFill.color      = Color.Lerp(ColRingFill, ColRingDone, t);
+    }
+
+    void ResetRing()
+    {
+        _holdTimer = 0f;
+        SetRing(0f);
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  OpenKeypad
+    // ═══════════════════════════════════════════════════
+
+    void OpenKeypad(bool isP1)
+    {
+        IsKeypadOpen = true;
+        _nearPlayer  = isP1 ? player1 : player2;
+        _input       = "";
         UpdateDisplay();
         SetStatus("", Color.white);
-        PositionPanel(player);
+
+        float anchorX = isP1 ? 0.25f : 0.75f;
+        if (_panelRT != null)
+        {
+            _panelRT.anchorMin        = new Vector2(anchorX, 0.5f);
+            _panelRT.anchorMax        = new Vector2(anchorX, 0.5f);
+            _panelRT.anchoredPosition = Vector2.zero;
+        }
         _panel.SetActive(true);
     }
 
-    void Close()
+    // ═══════════════════════════════════════════════════
+    //  HandleKeypadInput
+    // ═══════════════════════════════════════════════════
+
+    void HandleKeypadInput()
     {
-        IsKeypadOpen = false;   // ← แจ้ง KeypadPromptUI ให้แสดง Prompt อีกครั้ง
-        _panel.SetActive(false);
-        _input = "";
-    }
+        if (!IsKeypadOpen) return;
 
-    void PositionPanel(PlayerController player)
-    {
-        bool isP1 = (player == player1);
+        if (Input.GetKeyDown(KeyCode.Escape)) { Close(); return; }
 
-        float screenX = isP1 ? Screen.width * 0.25f : Screen.width * 0.75f;
-        float screenY = Screen.height * 0.5f;
-
-        RectTransform canvasRT = targetCanvas.GetComponent<RectTransform>();
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRT,
-            new Vector2(screenX, screenY),
-            targetCanvas.worldCamera,
-            out Vector2 localPos);
-
-        _panelRT.anchorMin = _panelRT.anchorMax = new Vector2(0.5f, 0.5f);
-        _panelRT.anchoredPosition = localPos;
+        for (int i = 0; i <= 9; i++)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha0 + i) ||
+                Input.GetKeyDown(KeyCode.Keypad0 + i))
+                PressDigit(i);
+        }
+        if (Input.GetKeyDown(KeyCode.Backspace)) PressDelete();
+        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) PressOK();
     }
 
     // ═══════════════════════════════════════════════════
-    //  Button Actions
+    //  Keypad Logic
     // ═══════════════════════════════════════════════════
 
-    void PressNumber(int n)
+    void PressDigit(int n)
     {
         if (_input.Length >= correctCode.Length) return;
         _input += n.ToString();
@@ -326,47 +216,42 @@ public class KeypadUIBuilder : MonoBehaviour
     {
         if (_input == correctCode)
         {
-            SetStatus("CORRECT  —  UNLOCKED", new Color(0.3f, 1f, 0.4f));
-
-            if (_door != null) _door.ForceOpen();
-
-            // ── ล็อคถาวร ──
-            DoorUnlocked = true;   // ← KeypadPromptUI จะซ่อน Prompt ถาวร
-            IsKeypadOpen = false;
-
-            Invoke(nameof(Close), 1.5f);
+            SetStatus("✓  Unlocked!", new Color(0.2f, 0.9f, 0.4f));
+            _door?.ForceOpen();
+            DoorUnlocked = true;
+            Invoke(nameof(Close), 1.2f);
         }
         else
         {
-            SetStatus("WRONG CODE", new Color(1f, 0.3f, 0.3f));
-            if (_door != null) _door.PlayWrong();
+            SetStatus("✗  Wrong code", new Color(1f, 0.3f, 0.3f));
+            _door?.PlayWrong();
             _input = "";
-            Invoke(nameof(ClearStatusAndDisplay), 1.2f);
+            UpdateDisplay();
         }
     }
 
-    void ClearStatusAndDisplay()
+    void Close()
     {
-        _input = "";
-        UpdateDisplay();
-        SetStatus("", Color.white);
+        IsKeypadOpen = false;
+        _panel.SetActive(false);
+        ResetRing();
     }
-
-    // ═══════════════════════════════════════════════════
-    //  Display Helpers
-    // ═══════════════════════════════════════════════════
 
     void UpdateDisplay()
     {
         if (_display == null) return;
-
-        var sb = new System.Text.StringBuilder();
-        for (int i = 0; i < correctCode.Length; i++)
+        if (_input.Length == 0)
         {
-            sb.Append(i < _input.Length ? _input[i] : '_');
-            if (i < correctCode.Length - 1) sb.Append(' ');
+            string blank = "";
+            for (int i = 0; i < correctCode.Length; i++)
+                blank += "_ " ;
+            _display.text = blank.TrimEnd();
+            return;
         }
-        _display.text = sb.ToString();
+        string s = "";
+        for (int i = 0; i < correctCode.Length; i++)
+            s += (i < _input.Length ? "●" : "_") + (i < correctCode.Length - 1 ? " " : "");
+        _display.text = s;
     }
 
     void SetStatus(string msg, Color col)
@@ -377,12 +262,116 @@ public class KeypadUIBuilder : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════════
-    //  Gizmo
+    //  BuildUI
     // ═══════════════════════════════════════════════════
 
-    void OnDrawGizmosSelected()
+    void BuildUI()
     {
-        Gizmos.color = DoorUnlocked ? Color.green : Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, triggerRadius);
+        if (targetCanvas == null) return;
+
+        Transform root = targetCanvas.transform;
+
+        _panel   = MakeImage(root, "KeypadPanel",
+                             Vector2.zero, new Vector2(340, 580),
+                             new Color(0.08f, 0.08f, 0.12f, 0.97f));
+        _panelRT = _panel.GetComponent<RectTransform>();
+        _panel.SetActive(false);
+
+        Transform p = _panel.transform;
+
+        MakeText(p, "Title", "[ KEYPAD ]",
+                 new Vector2(0, 245), new Vector2(300, 50), 28,
+                 new Color(0.4f, 0.8f, 1f));
+
+        var dispGo = MakeImage(p, "DisplayBG",
+                               new Vector2(0, 180), new Vector2(280, 60),
+                               new Color(0.02f, 0.02f, 0.05f, 1f));
+        _display = MakeText(dispGo.transform, "DisplayText", "_ _ _ _",
+                            Vector2.zero, new Vector2(280, 60), 38, Color.white);
+
+        _statusText = MakeText(p, "Status", "",
+                               new Vector2(0, 125), new Vector2(280, 36), 20,
+                               new Color(1f, 0.4f, 0.4f));
+
+        MakeNumBtn(p, 1, new Vector2(-100,  65));
+        MakeNumBtn(p, 2, new Vector2(   0,  65));
+        MakeNumBtn(p, 3, new Vector2( 100,  65));
+        MakeNumBtn(p, 4, new Vector2(-100, -25));
+        MakeNumBtn(p, 5, new Vector2(   0, -25));
+        MakeNumBtn(p, 6, new Vector2( 100, -25));
+        MakeNumBtn(p, 7, new Vector2(-100,-115));
+        MakeNumBtn(p, 8, new Vector2(   0,-115));
+        MakeNumBtn(p, 9, new Vector2( 100,-115));
+
+        MakeActionBtn(p, "DEL", new Vector2(-100,-205), new Color(0.6f,0.2f,0.2f), PressDelete);
+        MakeNumBtn(p, 0, new Vector2(0,-205));
+        MakeActionBtn(p, "OK",  new Vector2( 100,-205), new Color(0.2f,0.55f,0.2f), PressOK);
+
+        MakeEscText(p, new Vector2(0, -275));
+    }
+
+    // ─── UI Helpers ──────────────────────────────────
+
+    GameObject MakeImage(Transform parent, string name, Vector2 pos, Vector2 size, Color color)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos; rt.sizeDelta = size;
+        go.GetComponent<Image>().color = color;
+        return go;
+    }
+
+    TextMeshProUGUI MakeText(Transform parent, string name, string text,
+                             Vector2 pos, Vector2 size, float fontSize, Color color)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos; rt.sizeDelta = size;
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text = text; tmp.fontSize = fontSize;
+        tmp.alignment = TextAlignmentOptions.Center; tmp.color = color;
+        return tmp;
+    }
+
+    void MakeEscText(Transform parent, Vector2 pos)
+    {
+        var go = new GameObject("Btn_ESC", typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos; rt.sizeDelta = new Vector2(280, 44);
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text = "ESC  —  Close"; tmp.fontSize = 22f;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.color = new Color(0.65f, 0.65f, 0.75f, 1f);
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = null;
+        btn.onClick.AddListener(Close);
+    }
+
+    void MakeNumBtn(Transform parent, int num, Vector2 pos)
+    {
+        int n = num;
+        MakeActionBtn(parent, num.ToString(), pos,
+                      new Color(0.22f, 0.22f, 0.32f), () => PressDigit(n));
+    }
+
+    void MakeActionBtn(Transform parent, string label, Vector2 pos,
+                       Color bgColor, System.Action onClick)
+    {
+        var go = MakeImage(parent, "Btn_" + label, pos, new Vector2(80, 72), bgColor);
+        MakeText(go.transform, "Lbl", label, Vector2.zero, new Vector2(80, 72), 26, Color.white);
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = go.GetComponent<Image>();
+        btn.onClick.AddListener(() => onClick());
+        var colors = btn.colors;
+        colors.normalColor      = bgColor;
+        colors.highlightedColor = bgColor * 1.3f;
+        colors.pressedColor     = bgColor * 0.7f;
+        btn.colors = colors;
     }
 }

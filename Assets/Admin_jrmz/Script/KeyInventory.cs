@@ -4,16 +4,12 @@ using UnityEngine.SceneManagement;
 using TMPro;
 
 /// <summary>
-/// KeyInventory — รูปกุญแจ HUD + ป้าย 3D หน้าประตู + เปลี่ยน Scene
+/// KeyInventory — HUD กุญแจ + ป้าย 3D หน้าประตูพร้อมวงกลม progress ฝั่งขวา
 ///
 /// Setup:
-///   1. ผูก player1, player2
-///   2. ผูก targetCanvas (Screen Space – Overlay)
-///   3. ผูก keySprite
-///   4. ผูก doorTransform (Transform ของ GameObject ประตู)
-///   5. ใส่ nextSceneName
-///   6. ผูก doorPromptAnchor (Empty GameObject เหนือประตู) — ไม่บังคับ
-///   7. ปรับ boardRotation Y ให้ป้ายหันถูกทิศ
+///   1. ผูก player1, player2, targetCanvas, keySprite
+///   2. ผูก doorTransform + ใส่ nextSceneName
+///   3. ผูก doorPromptAnchor (ไม่บังคับ) + ปรับ boardRotation Y
 /// </summary>
 public class KeyInventory : MonoBehaviour
 {
@@ -26,7 +22,6 @@ public class KeyInventory : MonoBehaviour
     public PlayerController player2;
 
     [Header("── Canvas ───────────────────────────")]
-    [Tooltip("Canvas แบบ Screen Space – Overlay")]
     public Canvas targetCanvas;
 
     [Header("── Sprites ──────────────────────────")]
@@ -38,27 +33,31 @@ public class KeyInventory : MonoBehaviour
     public float     doorRadius    = 3f;
 
     [Header("── Door Prompt Board (3D) ───────────")]
-    [Tooltip("Empty GameObject เหนือประตู — ถ้าว่างจะใช้ doorTransform + heightAbove")]
     public Transform doorPromptAnchor;
-    [Tooltip("ความสูงเหนือ doorTransform เมื่อไม่ได้ผูก doorPromptAnchor")]
     public float     heightAbove   = 2.2f;
-    [Tooltip("ปรับ Y เพื่อหมุนป้ายให้หันถูกทิศ")]
     public Vector3   boardRotation = new Vector3(0f, 180f, 0f);
+
+    [Header("── Timing ───────────────────────────")]
+    [Tooltip("วินาทีที่ต้องค้างปุ่ม")]
+    public float holdDuration = 1.2f;
 
     // ═══════════════════════════════════════════════════
     //  Colors
     // ═══════════════════════════════════════════════════
 
-    static readonly Color ColBg      = new Color(0.06f, 0.06f, 0.09f, 0.96f);
-    static readonly Color ColBorder  = new Color(0.85f, 0.55f, 0.08f, 1.00f);
-    static readonly Color ColAccent  = new Color(0.94f, 0.62f, 0.15f, 1.00f);
-    static readonly Color ColKeyBg   = new Color(0.14f, 0.14f, 0.20f, 1.00f);
-    static readonly Color ColKeyBdr  = new Color(0.70f, 0.45f, 0.05f, 1.00f);
-    static readonly Color ColTextKey = new Color(1.00f, 0.80f, 0.20f, 1.00f);
-    static readonly Color ColTextSub = new Color(0.80f, 0.80f, 0.82f, 1.00f);
-    static readonly Color ColOr      = new Color(0.50f, 0.50f, 0.54f, 1.00f);
-    static readonly Color ColGold    = new Color(1.00f, 0.80f, 0.20f, 1.00f);
-    static readonly Color ColGray    = new Color(0.40f, 0.40f, 0.44f, 1.00f);
+    static readonly Color ColBg       = new Color(0.06f, 0.06f, 0.09f, 0.96f);
+    static readonly Color ColBorder   = new Color(0.85f, 0.55f, 0.08f, 1.00f);
+    static readonly Color ColAccent   = new Color(0.94f, 0.62f, 0.15f, 1.00f);
+    static readonly Color ColKeyBg    = new Color(0.14f, 0.14f, 0.20f, 1.00f);
+    static readonly Color ColKeyBdr   = new Color(0.70f, 0.45f, 0.05f, 1.00f);
+    static readonly Color ColTextKey  = new Color(1.00f, 0.80f, 0.20f, 1.00f);
+    static readonly Color ColTextSub  = new Color(0.80f, 0.80f, 0.82f, 1.00f);
+    static readonly Color ColOr       = new Color(0.50f, 0.50f, 0.54f, 1.00f);
+    static readonly Color ColGold     = new Color(1.00f, 0.80f, 0.20f, 1.00f);
+    static readonly Color ColGray     = new Color(0.40f, 0.40f, 0.44f, 1.00f);
+    static readonly Color ColRingBg   = new Color(0.12f, 0.12f, 0.18f, 1.00f);
+    static readonly Color ColRingFill = new Color(0.94f, 0.75f, 0.15f, 1.00f);
+    static readonly Color ColRingDone = new Color(0.25f, 0.95f, 0.45f, 1.00f);
 
     // ═══════════════════════════════════════════════════
     //  State
@@ -72,7 +71,11 @@ public class KeyInventory : MonoBehaviour
     Image           _keyIconP1, _keyIconP2;
 
     GameObject _doorBoard;
-    bool       _sceneLoading = false;
+    Image      _ringFill;
+
+    bool  _sceneLoading = false;
+    float _holdTimer    = 0f;
+    bool  _fired        = false;
 
     // ═══════════════════════════════════════════════════
     //  Awake
@@ -94,7 +97,7 @@ public class KeyInventory : MonoBehaviour
     {
         if (_sceneLoading) return;
         UpdateDoorBoard();
-        HandleDoorInput();
+        HandleHold();
     }
 
     // ═══════════════════════════════════════════════════
@@ -130,47 +133,68 @@ public class KeyInventory : MonoBehaviour
 
     // ═══════════════════════════════════════════════════
     //  UpdateDoorBoard
-    //  แสดงป้ายเมื่อ: ผู้เล่นที่มีกุญแจเดินเข้าใกล้ประตู
     // ═══════════════════════════════════════════════════
 
     void UpdateDoorBoard()
     {
         if (_doorBoard == null || doorTransform == null) return;
 
-        bool p1NearWithKey = _keysP1 > 0 && player1 != null &&
-                             Vector3.Distance(player1.transform.position,
-                                              doorTransform.position) <= doorRadius;
-        bool p2NearWithKey = _keysP2 > 0 && player2 != null &&
-                             Vector3.Distance(player2.transform.position,
-                                              doorTransform.position) <= doorRadius;
+        bool p1NearKey = _keysP1 > 0 && player1 != null &&
+                         Vector3.Distance(player1.transform.position, doorTransform.position) <= doorRadius;
+        bool p2NearKey = _keysP2 > 0 && player2 != null &&
+                         Vector3.Distance(player2.transform.position, doorTransform.position) <= doorRadius;
 
-        bool show = p1NearWithKey || p2NearWithKey;
+        bool show = p1NearKey || p2NearKey;
         _doorBoard.SetActive(show);
-        if (show)
-            _doorBoard.transform.rotation = Quaternion.Euler(boardRotation);
+        if (show) _doorBoard.transform.rotation = Quaternion.Euler(boardRotation);
     }
 
     // ═══════════════════════════════════════════════════
-    //  HandleDoorInput
-    //  P1 กด E / P2 กด Numpad7 → เปลี่ยน Scene (ถ้ามีกุญแจ)
+    //  HandleHold
     // ═══════════════════════════════════════════════════
 
-    void HandleDoorInput()
+    void HandleHold()
     {
         if (doorTransform == null) return;
 
-        bool p1Near = player1 != null &&
-                      Vector3.Distance(player1.transform.position,
-                                       doorTransform.position) <= doorRadius;
-        bool p2Near = player2 != null &&
-                      Vector3.Distance(player2.transform.position,
-                                       doorTransform.position) <= doorRadius;
+        bool p1Near    = _keysP1 > 0 && player1 != null &&
+                         Vector3.Distance(player1.transform.position, doorTransform.position) <= doorRadius;
+        bool p2Near    = _keysP2 > 0 && player2 != null &&
+                         Vector3.Distance(player2.transform.position, doorTransform.position) <= doorRadius;
 
-        if (p1Near && _keysP1 > 0 && Input.GetKeyDown(KeyCode.E))
-            GoToNextScene();
+        bool p1Holding = p1Near && Input.GetKey(KeyCode.E);
+        bool p2Holding = p2Near && Input.GetKey(KeyCode.Keypad7);
+        bool anyHold   = p1Holding || p2Holding;
 
-        if (p2Near && _keysP2 > 0 && Input.GetKeyDown(KeyCode.Keypad7))
-            GoToNextScene();
+        if (anyHold && !_fired)
+        {
+            _holdTimer += Time.deltaTime / holdDuration;
+            _holdTimer  = Mathf.Clamp01(_holdTimer);
+            SetRing(_holdTimer);
+
+            if (_holdTimer >= 1f)
+            {
+                _fired = true;
+                GoToNextScene();
+            }
+        }
+        else if (!anyHold)
+        {
+            if (_holdTimer > 0f)
+            {
+                _holdTimer -= Time.deltaTime / holdDuration * 2.5f;
+                _holdTimer  = Mathf.Max(0f, _holdTimer);
+                SetRing(_holdTimer);
+            }
+            _fired = false;
+        }
+    }
+
+    void SetRing(float t)
+    {
+        if (_ringFill == null) return;
+        _ringFill.fillAmount = t;
+        _ringFill.color      = Color.Lerp(ColRingFill, ColRingDone, t);
     }
 
     void GoToNextScene()
@@ -181,12 +205,7 @@ public class KeyInventory : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════════
-    //  BuildDoorBoard — ป้าย 3D ลอยหน้าประตู
-    //
-    //  ┌──────────────────────────────────────────────┐
-    //  ║ ▌  [ E ]  or  [ Numpad7 ]                   ║
-    //  ║     Press E or Numpad7 to enter next area    ║
-    //  └──────────────────────────────────────────────┘
+    //  BuildDoorBoard
     // ═══════════════════════════════════════════════════
 
     void BuildDoorBoard()
@@ -205,70 +224,102 @@ public class KeyInventory : MonoBehaviour
         var canvas        = _doorBoard.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
 
-        const float W = 280f;
-        const float H =  68f;
-
+        const float W = 320f, H = 72f;
         var rootRT       = _doorBoard.GetComponent<RectTransform>();
         rootRT.sizeDelta = new Vector2(W, H);
 
-        // Border
         Img(_doorBoard.transform, "Border", 0, 0, W, H, ColBorder);
 
-        // BG
         const float bpx = 1.5f;
         Img(_doorBoard.transform, "BG", 0, 0, W - bpx * 2f, H - bpx * 2f, ColBg);
 
-        // Accent bar
-        const float acW = 5.5f;
-        const float acH = H - bpx * 2f;
+        const float acW = 5.5f, acH = H - bpx * 2f;
         float acX = -(W / 2f - bpx - acW / 2f);
         Img(_doorBoard.transform, "Accent", acX, 0, acW, acH, ColAccent);
 
-        // Content
         float cStartX = acX + acW / 2f + 8f;
-
-        // Row 1: [ E ]  or  [ Numpad7 ]
-        const float rowY   = 13f;
-        const float badgeH = 22f;
 
         const float eW = 30f;
         float eX = cStartX + eW / 2f;
-        Badge(_doorBoard.transform, "E", eX, rowY, eW, badgeH);
+        Badge(_doorBoard.transform, "E", eX, 13f, eW, 22f);
 
         const float orW = 18f;
         float orX = eX + eW / 2f + 4f + orW / 2f;
-        TMP(_doorBoard.transform, "Or", "or", orX, rowY, orW, badgeH, 8.5f, ColOr);
+        TMP(_doorBoard.transform, "Or", "or", orX, 13f, orW, 22f, 8.5f, ColOr);
 
         const float nW = 58f;
         float nX = orX + orW / 2f + 4f + nW / 2f;
-        Badge(_doorBoard.transform, "Numpad7", nX, rowY, nW, badgeH);
+        Badge(_doorBoard.transform, "Numpad7", nX, 13f, nW, 22f);
 
-        // Row 2: subtext
-        float subW = W - bpx * 2f - acW - 10f;
+        const float ringAreaW = 58f;
+        float subW = W - bpx * 2f - acW - 10f - ringAreaW - 4f;
         float subX = cStartX + subW / 2f;
-        TMP(_doorBoard.transform, "Sub",
-            "Press E or Numpad7 to enter next area",
+        TMP(_doorBoard.transform, "Sub", "Hold E or Numpad7 to enter",
             subX, -12f, subW, 16f, 7f, ColTextSub);
+
+        // ── Ring ──────────────────────────────────────
+        const float ringOuter = 48f;
+        const float ringThick =  7f;
+        const float ringInner = ringOuter - ringThick * 2f;
+        float ringCX = W / 2f - bpx - ringAreaW / 2f - 2f;
+
+        var bgRingGO = new GameObject("RingBg", typeof(RectTransform), typeof(Image));
+        bgRingGO.transform.SetParent(_doorBoard.transform, false);
+        var bgRingRT = bgRingGO.GetComponent<RectTransform>();
+        bgRingRT.anchorMin = bgRingRT.anchorMax = bgRingRT.pivot = new Vector2(0.5f, 0.5f);
+        bgRingRT.sizeDelta        = new Vector2(ringOuter, ringOuter);
+        bgRingRT.anchoredPosition = new Vector2(ringCX, 0f);
+        bgRingGO.GetComponent<Image>().color = ColRingBg;
+
+        var fillGO = new GameObject("RingFill", typeof(RectTransform), typeof(Image));
+        fillGO.transform.SetParent(_doorBoard.transform, false);
+        var fillRT = fillGO.GetComponent<RectTransform>();
+        fillRT.anchorMin = fillRT.anchorMax = fillRT.pivot = new Vector2(0.5f, 0.5f);
+        fillRT.sizeDelta        = new Vector2(ringOuter, ringOuter);
+        fillRT.anchoredPosition = new Vector2(ringCX, 0f);
+        _ringFill               = fillGO.GetComponent<Image>();
+        _ringFill.color         = ColRingFill;
+        _ringFill.type          = Image.Type.Filled;
+        _ringFill.fillMethod    = Image.FillMethod.Radial360;
+        _ringFill.fillOrigin    = (int)Image.Origin360.Top;
+        _ringFill.fillClockwise = true;
+        _ringFill.fillAmount    = 0f;
+
+        var innerGO = new GameObject("RingInner", typeof(RectTransform), typeof(Image));
+        innerGO.transform.SetParent(_doorBoard.transform, false);
+        var innerRT = innerGO.GetComponent<RectTransform>();
+        innerRT.anchorMin = innerRT.anchorMax = innerRT.pivot = new Vector2(0.5f, 0.5f);
+        innerRT.sizeDelta        = new Vector2(ringInner, ringInner);
+        innerRT.anchoredPosition = new Vector2(ringCX, 0f);
+        innerGO.GetComponent<Image>().color = ColBg;
+
+        var lblGO = new GameObject("RingLabel", typeof(RectTransform));
+        lblGO.transform.SetParent(_doorBoard.transform, false);
+        var lblRT = lblGO.GetComponent<RectTransform>();
+        lblRT.anchorMin = lblRT.anchorMax = lblRT.pivot = new Vector2(0.5f, 0.5f);
+        lblRT.sizeDelta        = new Vector2(ringInner, ringInner);
+        lblRT.anchoredPosition = new Vector2(ringCX, 0f);
+        var lbl    = lblGO.AddComponent<TextMeshProUGUI>();
+        lbl.text      = "E\n<size=60%>/ 7</size>";
+        lbl.fontSize  = 12f;
+        lbl.fontStyle = FontStyles.Bold;
+        lbl.alignment = TextAlignmentOptions.Center;
+        lbl.color     = ColTextKey;
 
         _doorBoard.SetActive(false);
     }
 
     // ═══════════════════════════════════════════════════
-    //  BuildKeyHUD — HUD กุญแจมุมขวาบน
+    //  BuildKeyHUD
     // ═══════════════════════════════════════════════════
 
     void BuildKeyHUD(out GameObject hud, out TextMeshProUGUI countTMP,
                      out Image keyIcon, bool isLeftSide)
     {
-        hud      = null;
-        countTMP = null;
-        keyIcon  = null;
-
+        hud = null; countTMP = null; keyIcon = null;
         if (targetCanvas == null) return;
 
-        const float W   = 120f;
-        const float H   =  52f;
-        const float PAD =  18f;
+        const float W = 120f, H = 52f, PAD = 18f;
 
         var root = new GameObject("KeyHUD_" + (isLeftSide ? "P1" : "P2"),
                                   typeof(RectTransform));
@@ -282,7 +333,6 @@ public class KeyInventory : MonoBehaviour
         rootRT.sizeDelta        = new Vector2(W, H);
         rootRT.anchoredPosition = new Vector2(-PAD, -PAD - 40f);
 
-        // Border
         var border = new GameObject("Border", typeof(RectTransform), typeof(Image));
         border.transform.SetParent(root.transform, false);
         var bRT = border.GetComponent<RectTransform>();
@@ -290,19 +340,15 @@ public class KeyInventory : MonoBehaviour
         bRT.offsetMin = Vector2.zero; bRT.offsetMax = Vector2.zero;
         border.GetComponent<Image>().color = ColBorder;
 
-        // BG
         const float bpx = 1.5f;
         var bg = new GameObject("BG", typeof(RectTransform), typeof(Image));
         bg.transform.SetParent(root.transform, false);
         var bgRT = bg.GetComponent<RectTransform>();
         bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
-        bgRT.offsetMin = new Vector2( bpx,  bpx);
-        bgRT.offsetMax = new Vector2(-bpx, -bpx);
+        bgRT.offsetMin = new Vector2(bpx, bpx); bgRT.offsetMax = new Vector2(-bpx, -bpx);
         bg.GetComponent<Image>().color = ColBg;
 
-        // Key Icon
-        const float iconSize = 32f;
-        const float iconX    = 10f;
+        const float iconSize = 32f, iconX = 10f;
         var iconGO = new GameObject("KeyIcon", typeof(RectTransform), typeof(Image));
         iconGO.transform.SetParent(root.transform, false);
         var iconRT = iconGO.GetComponent<RectTransform>();
@@ -315,7 +361,6 @@ public class KeyInventory : MonoBehaviour
         if (keySprite != null) keyIcon.sprite = keySprite;
         keyIcon.color = ColGray;
 
-        // Count Text
         float textX = iconX + iconSize + 4f;
         float textW = W - textX - bpx - 4f;
         var textGO = new GameObject("Count", typeof(RectTransform));
@@ -336,12 +381,9 @@ public class KeyInventory : MonoBehaviour
         hud.SetActive(false);
     }
 
-    // ═══════════════════════════════════════════════════
-    //  UI Helpers
-    // ═══════════════════════════════════════════════════
+    // ─── UI Helpers ──────────────────────────────────
 
-    void Img(Transform parent, string name,
-             float x, float y, float w, float h, Color col)
+    void Img(Transform parent, string name, float x, float y, float w, float h, Color col)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image));
         go.transform.SetParent(parent, false);
@@ -368,10 +410,8 @@ public class KeyInventory : MonoBehaviour
         tmp.color     = col;
     }
 
-    void Badge(Transform parent, string label,
-               float x, float y, float w, float h)
+    void Badge(Transform parent, string label, float x, float y, float w, float h)
     {
-        // Outer border
         var outer = new GameObject("Badge_" + label, typeof(RectTransform), typeof(Image));
         outer.transform.SetParent(parent, false);
         var oRT = outer.GetComponent<RectTransform>();
@@ -380,17 +420,14 @@ public class KeyInventory : MonoBehaviour
         oRT.sizeDelta        = new Vector2(w, h);
         outer.GetComponent<Image>().color = ColKeyBdr;
 
-        // Inner BG
         const float bp = 1.2f;
         var inner = new GameObject("BG", typeof(RectTransform), typeof(Image));
         inner.transform.SetParent(outer.transform, false);
         var iRT = inner.GetComponent<RectTransform>();
         iRT.anchorMin = Vector2.zero; iRT.anchorMax = Vector2.one;
-        iRT.offsetMin = new Vector2( bp,  bp);
-        iRT.offsetMax = new Vector2(-bp, -bp);
+        iRT.offsetMin = new Vector2(bp, bp); iRT.offsetMax = new Vector2(-bp, -bp);
         inner.GetComponent<Image>().color = ColKeyBg;
 
-        // Label text
         var tGO = new GameObject("Lbl", typeof(RectTransform));
         tGO.transform.SetParent(outer.transform, false);
         var tRT = tGO.GetComponent<RectTransform>();
