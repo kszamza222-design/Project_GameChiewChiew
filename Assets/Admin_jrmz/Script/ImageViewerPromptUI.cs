@@ -102,6 +102,18 @@ public class ImageViewerPromptUI : MonoBehaviour
         bool p2Near = player2 != null &&
                       Vector3.Distance(player2.transform.position, transform.position) <= showRadius;
 
+        // ── Auto-close เมื่อผู้เล่นเดินออกนอกรัศมี ──
+        if (_viewerP1Open && !p1Near)
+        {
+            _viewerP1Open = false;
+            _viewerP1.SetActive(false);
+        }
+        if (_viewerP2Open && !p2Near)
+        {
+            _viewerP2Open = false;
+            _viewerP2.SetActive(false);
+        }
+
         // ESC ปิดทั้งคู่
         if (Input.GetKeyDown(KeyCode.Escape))
         {
