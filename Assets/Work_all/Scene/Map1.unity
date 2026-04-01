@@ -16832,6 +16832,62 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7806153676507195072, guid: b97966213bd2b9744a832c1f1d0c2177, type: 3}
   m_PrefabInstance: {fileID: 1541390288}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &680330258
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 680330260}
+  - component: {fileID: 680330259}
+  m_Layer: 0
+  m_Name: Heallthsystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &680330259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 680330258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dd62e87c9f37564cbe49def2a246fa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HealthSystem
+  targetCanvas: {fileID: 1439346213}
+  player1: {fileID: 1153631752}
+  player2: {fileID: 538864543}
+  portraitP1: {fileID: 21300000, guid: 95c820a31deb76042a2b36a766fd62ab, type: 3}
+  portraitP2: {fileID: 21300000, guid: f3977d86b42a5c841ae99170cb952beb, type: 3}
+  maxHP: 100
+  regenDelay: 4
+  regenPerSecond: 5
+  hudOffsetP1: {x: 16, y: -16}
+  hudOffsetP2: {x: 16, y: -16}
+  enableTestKeys: 1
+  testDamage: 15
+--- !u!4 &680330260
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 680330258}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -76.07172, y: 0.73199, z: 70.12989}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &684037674
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24060,6 +24116,14 @@ PrefabInstance:
     - target: {fileID: 1034970317417678845, guid: 60176447974fcae48abbeb889dd4bf95, type: 3}
       propertyPath: m_Name
       value: NF_Prop_Pine_01 (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1034970317417678845, guid: 60176447974fcae48abbeb889dd4bf95, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8084479847873958609, guid: 60176447974fcae48abbeb889dd4bf95, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -36799,6 +36863,14 @@ PrefabInstance:
     - target: {fileID: 1034970317417678845, guid: 60176447974fcae48abbeb889dd4bf95, type: 3}
       propertyPath: m_Name
       value: NF_Prop_Pine_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 1034970317417678845, guid: 60176447974fcae48abbeb889dd4bf95, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8084479847873958609, guid: 60176447974fcae48abbeb889dd4bf95, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -50772,3 +50844,4 @@ SceneRoots:
   - {fileID: 801785490}
   - {fileID: 795033467}
   - {fileID: 1252791880}
+  - {fileID: 680330260}
