@@ -4,14 +4,8 @@ using TMPro;
 using System.Collections;
 
 /// <summary>
-/// HealthSystem — UI วงกลม Portrait + Arc HP สไตล์ RPG น้ำตาล-ทอง
-/// Portrait วงกลม Mask + Radial Fill HP Arc
-///
-/// Setup:
-///   1. ผูก targetCanvas, player1, player2
-///   2. ผูก portraitP1, portraitP2 (Sprite)
-///   3. ปรับ hudOffsetP1/P2
-/// Test: F1=P1ลดHP  F2=P2ลดHP  F3=P1Heal  F4=P2Heal
+/// HealthSystem — UI วงกลม Portrait + Arc HP สไตล์ RPG
+/// ปรับทุกอย่างได้ใน Inspector
 /// </summary>
 public class HealthSystem : MonoBehaviour
 {
@@ -35,127 +29,169 @@ public class HealthSystem : MonoBehaviour
     public Vector2 hudOffsetP1 = new Vector2(16f, -16f);
     public Vector2 hudOffsetP2 = new Vector2(16f, -16f);
 
+    // ═══════════════════════════════════════════
+    //  ปรับขนาดได้ทั้งหมด
+    // ═══════════════════════════════════════════
+
+    [Header("── Size: Panel ─────────────────────")]
+    [Tooltip("ความกว้าง Panel ทั้งหมด")]
+    public float panelW = 185f;
+    [Tooltip("ความสูง Panel ทั้งหมด")]
+    public float panelH = 90f;
+
+    [Header("── Size: Portrait Circle ───────────")]
+    [Tooltip("เส้นผ่านศูนย์กลางวงกลม Portrait")]
+    public float circleSize = 76f;
+    [Tooltip("ความหนา HP Arc รอบวงกลม")]
+    public float arcThickness = 10f;
+
+    [Header("── Size: Portrait Image ───────────")]
+    [Tooltip("ขนาดรูปภาพใน Portrait (0 = ใช้ circleSize อัตโนมัติ)")]
+    public float portraitImageSize = 0f;
+
+    [Header("── Size: Text ───────────────────────")]
+    [Tooltip("ขนาด font ชื่อ Player")]
+    public float fontSizeName = 13f;
+    [Tooltip("ขนาด font ตัวเลข HP")]
+    public float fontSizeHP   = 19f;
+    [Tooltip("ขนาด font ป้าย HP")]
+    public float fontSizeLabel = 10f;
+
+    [Header("── Colors: Panel ───────────────────")]
+    public Color colPanel    = new Color(0.12f, 0.08f, 0.04f, 0.95f);
+    public Color colPanelBdr = new Color(0.80f, 0.55f, 0.10f, 1.00f);
+    public Color colPanelIn  = new Color(0.20f, 0.13f, 0.06f, 0.92f);
+
+    [Header("── Colors: HP Arc ──────────────────")]
+    public Color colArcBg    = new Color(0.08f, 0.05f, 0.02f, 1.00f);
+    public Color colArcFull  = new Color(0.18f, 0.90f, 0.32f, 1.00f);
+    public Color colArcMid   = new Color(1.00f, 0.80f, 0.08f, 1.00f);
+    public Color colArcLow   = new Color(0.95f, 0.15f, 0.15f, 1.00f);
+    public Color colArcDrain = new Color(0.92f, 0.45f, 0.05f, 0.65f);
+
+    [Header("── Colors: Portrait Ring ──────────")]
+    public Color colPortBg   = new Color(0.15f, 0.10f, 0.05f, 1.00f);
+    public Color colRingOut  = new Color(0.88f, 0.62f, 0.08f, 1.00f);
+    public Color colRingIn   = new Color(0.50f, 0.32f, 0.04f, 1.00f);
+
+    [Header("── Colors: Text ────────────────────")]
+    public Color colNameP1  = new Color(0.40f, 0.82f, 1.00f, 1.00f);
+    public Color colNameP2  = new Color(1.00f, 0.78f, 0.22f, 1.00f);
+    public Color colHpNum   = new Color(1.00f, 0.95f, 0.80f, 1.00f);
+    public Color colHpLabel = new Color(0.78f, 0.58f, 0.28f, 0.85f);
+
     [Header("── Test Keys ───────────────────────")]
     public bool enableTestKeys = true;
     public int  testDamage     = 15;
 
-    // ═══════════════════════════════════════════
-    //  Palette — เข้ม น้ำตาล-ทอง RPG
-    // ═══════════════════════════════════════════
-    static readonly Color ColPanelDark  = new Color(0.12f, 0.08f, 0.05f, 0.95f);
-    static readonly Color ColPanelBdr   = new Color(0.75f, 0.50f, 0.10f, 1.00f);
-    static readonly Color ColPanelInner = new Color(0.20f, 0.13f, 0.07f, 0.92f);
-
-    static readonly Color ColArcBg      = new Color(0.10f, 0.06f, 0.03f, 1.00f);
-    static readonly Color ColArcFull    = new Color(0.20f, 0.88f, 0.35f, 1.00f);  // เขียวสด
-    static readonly Color ColArcMid     = new Color(0.98f, 0.80f, 0.10f, 1.00f);  // เหลืองทอง
-    static readonly Color ColArcLow     = new Color(0.95f, 0.18f, 0.18f, 1.00f);  // แดง
-    static readonly Color ColArcDrain   = new Color(0.90f, 0.45f, 0.05f, 0.65f);  // ส้ม drain
-    static readonly Color ColArcGlow    = new Color(1.00f, 0.85f, 0.30f, 0.25f);  // ทองเรือง
-
-    static readonly Color ColRingOuter  = new Color(0.85f, 0.60f, 0.10f, 1.00f);  // ทองเข้ม
-    static readonly Color ColRingInner  = new Color(0.55f, 0.35f, 0.05f, 1.00f);  // น้ำตาลทอง
-    static readonly Color ColPortBg     = new Color(0.15f, 0.10f, 0.06f, 1.00f);
-
-    static readonly Color ColNameP1     = new Color(0.40f, 0.80f, 1.00f, 1.00f);  // ฟ้า
-    static readonly Color ColNameP2     = new Color(0.98f, 0.75f, 0.25f, 1.00f);  // ทอง
-    static readonly Color ColHpNum      = new Color(1.00f, 0.95f, 0.80f, 1.00f);  // ขาวครีม
-    static readonly Color ColHpLabel    = new Color(0.80f, 0.60f, 0.30f, 0.85f);  // น้ำตาลอ่อน
-    static readonly Color ColFlash      = new Color(1.00f, 0.05f, 0.05f, 0.50f);
-
-    // ── ขนาด ────────────────────────────────────
-    const float CIRC  = 76f;
-    const float ARCW  = 10f;
-    const float PANW  = 185f;
-    const float PANH  = 90f;
-
-    // ── State ────────────────────────────────────
+    // ── State ──────────────────────────────────
     float _hp1, _hp2, _drain1, _drain2, _regen1, _regen2;
     RectTransform   _rt1, _rt2;
-    Image           _fill1, _fill2, _drainImg1, _drainImg2, _flash1, _flash2;
+    Image           _fill1, _fill2, _di1, _di2, _flash1, _flash2;
+    Image           _port1, _port2;
     TextMeshProUGUI _txt1, _txt2;
+    Sprite          _cSpr;
 
-    Sprite _circleSpr;
+    bool _built = false;
 
     // ════════════════════════════════════════════
     void Awake()
     {
-        _hp1 = _drain1 = _hp2 = _drain2 = maxHP;
-        if (!targetCanvas) { Debug.LogError("[HP] ไม่มี Canvas"); return; }
+        _hp1=_drain1=_hp2=_drain2=maxHP;
+        if (!targetCanvas){Debug.LogError("[HP] ไม่มี Canvas");return;}
+        _cSpr = MakeCircle(128);
+        RebuildAll();
+    }
 
-        // สร้าง circle sprite ครั้งเดียว ใช้ซ้ำ
-        _circleSpr = BuildCircleSprite(128);
+    void RebuildAll()
+    {
+        // ลบ HUD เก่าออกก่อน
+        var old1 = targetCanvas.transform.Find("_HP_P1");
+        var old2 = targetCanvas.transform.Find("_HP_P2");
+        if (old1) Destroy(old1.gameObject);
+        if (old2) Destroy(old2.gameObject);
 
-        BuildHUD(true,  out _rt1, out _fill1, out _drainImg1, out _flash1, out _txt1);
-        BuildHUD(false, out _rt2, out _fill2, out _drainImg2, out _flash2, out _txt2);
+        BuildHUD(true,  out _rt1, out _fill1, out _di1, out _flash1, out _txt1, out _port1);
+        BuildHUD(false, out _rt2, out _fill2, out _di2, out _flash2, out _txt2, out _port2);
         Refresh(true); Refresh(false);
+        _built = true;
     }
 
     void Update()
     {
+        if (!_built) return;
+
         if (_rt1) _rt1.anchoredPosition = hudOffsetP1;
         if (_rt2) _rt2.anchoredPosition = hudOffsetP2;
 
-        _drain1 = Mathf.MoveTowards(_drain1, _hp1, 20f * Time.deltaTime);
-        _drain2 = Mathf.MoveTowards(_drain2, _hp2, 20f * Time.deltaTime);
-        if (_drainImg1) _drainImg1.fillAmount = _drain1 / maxHP;
-        if (_drainImg2) _drainImg2.fillAmount = _drain2 / maxHP;
+        _drain1 = Mathf.MoveTowards(_drain1,_hp1,20f*Time.deltaTime);
+        _drain2 = Mathf.MoveTowards(_drain2,_hp2,20f*Time.deltaTime);
+        if (_di1) _di1.fillAmount=_drain1/maxHP;
+        if (_di2) _di2.fillAmount=_drain2/maxHP;
 
-        Regen(ref _hp1, ref _regen1, true);
-        Regen(ref _hp2, ref _regen2, false);
+        Regen(ref _hp1,ref _regen1,true);
+        Regen(ref _hp2,ref _regen2,false);
 
-        if (!enableTestKeys) return;
-        if (Input.GetKeyDown(KeyCode.F1)) TakeDamage(true,  testDamage);
-        if (Input.GetKeyDown(KeyCode.F2)) TakeDamage(false, testDamage);
-        if (Input.GetKeyDown(KeyCode.F3)) Heal(true,  testDamage);
-        if (Input.GetKeyDown(KeyCode.F4)) Heal(false, testDamage);
+        if (!enableTestKeys)return;
+        if (Input.GetKeyDown(KeyCode.F1))TakeDamage(true, testDamage);
+        if (Input.GetKeyDown(KeyCode.F2))TakeDamage(false,testDamage);
+        if (Input.GetKeyDown(KeyCode.F3))Heal(true, testDamage);
+        if (Input.GetKeyDown(KeyCode.F4))Heal(false,testDamage);
     }
 
-    void Regen(ref float hp, ref float timer, bool p1)
+    // ── ปรับขนาด/สี real-time ใน Inspector ─────
+    void OnValidate()
     {
-        if (hp >= maxHP) return;
-        timer -= Time.deltaTime;
-        if (timer > 0f) return;
-        hp = Mathf.Min(maxHP, hp + regenPerSecond * Time.deltaTime);
+        if (!Application.isPlaying || !_built) return;
+        // Rebuild เมื่อค่าเปลี่ยนใน Inspector ขณะ Play
+        if (_cSpr == null) _cSpr = MakeCircle(128);
+        RebuildAll();
+    }
+
+    void Regen(ref float hp,ref float timer,bool p1)
+    {
+        if(hp>=maxHP)return;
+        timer-=Time.deltaTime;
+        if(timer>0f)return;
+        hp=Mathf.Min(maxHP,hp+regenPerSecond*Time.deltaTime);
         Refresh(p1);
     }
 
-    // ── Public API ───────────────────────────────
-    public void TakeDamage(bool p1, int amt)
+    // ── Public API ─────────────────────────────
+    public void TakeDamage(bool p1,int amt)
     {
-        if (p1) { _hp1=Mathf.Max(0,_hp1-amt); _regen1=regenDelay; Refresh(true);  StartCoroutine(DoFlash(_flash1)); if(_hp1<=0)Die(true);  }
-        else    { _hp2=Mathf.Max(0,_hp2-amt); _regen2=regenDelay; Refresh(false); StartCoroutine(DoFlash(_flash2)); if(_hp2<=0)Die(false); }
+        if(p1){_hp1=Mathf.Max(0,_hp1-amt);_regen1=regenDelay;Refresh(true); StartCoroutine(DoFlash(_flash1));if(_hp1<=0)Die(true);}
+        else  {_hp2=Mathf.Max(0,_hp2-amt);_regen2=regenDelay;Refresh(false);StartCoroutine(DoFlash(_flash2));if(_hp2<=0)Die(false);}
     }
-    public void Heal(bool p1, int amt)
+    public void Heal(bool p1,int amt)
     {
-        if (p1) { _hp1=Mathf.Min(maxHP,_hp1+amt); Refresh(true);  }
-        else    { _hp2=Mathf.Min(maxHP,_hp2+amt); Refresh(false); }
+        if(p1){_hp1=Mathf.Min(maxHP,_hp1+amt);Refresh(true);}
+        else  {_hp2=Mathf.Min(maxHP,_hp2+amt);Refresh(false);}
     }
     public void ResetHP(bool p1)
     {
-        if (p1) { _hp1=_drain1=maxHP; Refresh(true);  }
-        else    { _hp2=_drain2=maxHP; Refresh(false); }
+        if(p1){_hp1=_drain1=maxHP;Refresh(true);}
+        else  {_hp2=_drain2=maxHP;Refresh(false);}
     }
-    public int GetHP(bool p1) => p1?(int)_hp1:(int)_hp2;
-
-    void Die(bool p1) { ResetHP(p1); CheckpointManager.Instance?.TriggerRespawn(p1); }
+    public int GetHP(bool p1)=>p1?(int)_hp1:(int)_hp2;
+    void Die(bool p1){ResetHP(p1);CheckpointManager.Instance?.TriggerRespawn(p1);}
 
     void Refresh(bool p1)
     {
-        float hp   = p1 ? _hp1 : _hp2;
-        var   fill = p1 ? _fill1 : _fill2;
-        var   txt  = p1 ? _txt1  : _txt2;
-        float r    = hp / maxHP;
-        if (fill != null) { fill.fillAmount = r; fill.color = r>0.55f?ColArcFull:r>0.28f?ColArcMid:ColArcLow; }
-        if (txt  != null) txt.text = $"{(int)hp}<size=65%>/{maxHP}</size>";
+        float hp=p1?_hp1:_hp2;
+        var fill=p1?_fill1:_fill2;
+        var txt =p1?_txt1 :_txt2;
+        float r=hp/maxHP;
+        if(fill!=null){fill.fillAmount=r;fill.color=r>.55f?colArcFull:r>.28f?colArcMid:colArcLow;}
+        if(txt!=null)txt.text=$"{(int)hp}<size=65%>/{maxHP}</size>";
     }
 
     IEnumerator DoFlash(Image img)
     {
-        if (!img) yield break;
+        if(!img)yield break;
         img.gameObject.SetActive(true);
-        for (float t=0; t<0.3f; t+=Time.deltaTime)
-        { img.color=new Color(1,.05f,.05f,Mathf.Lerp(.5f,0,t/.3f)); yield return null; }
+        for(float t=0;t<.3f;t+=Time.deltaTime)
+        {img.color=new Color(1,.05f,.05f,Mathf.Lerp(.5f,0,t/.3f));yield return null;}
         img.gameObject.SetActive(false);
     }
 
@@ -163,207 +199,155 @@ public class HealthSystem : MonoBehaviour
     //  BuildHUD
     // ════════════════════════════════════════════
     void BuildHUD(bool isLeft,
-                  out RectTransform    hudRt,
-                  out Image            arcFill,
-                  out Image            arcDrain,
+                  out RectTransform    rt,
+                  out Image            fill,
+                  out Image            drain,
                   out Image            flash,
-                  out TextMeshProUGUI  hpTxt)
+                  out TextMeshProUGUI  txt,
+                  out Image            portImg)
     {
-        arcFill=arcDrain=flash=null; hpTxt=null;
-        string s    = isLeft?"P1":"P2";
-        Color  ncol = isLeft?ColNameP1:ColNameP2;
-        string name = isLeft?"PLAYER 1":"PLAYER 2";
-        Sprite port = isLeft?portraitP1:portraitP2;
+        fill=drain=flash=portImg=null; txt=null;
+        string s  = isLeft?"P1":"P2";
+        Sprite port= isLeft?portraitP1:portraitP2;
+        Color  nc  = isLeft?colNameP1:colNameP2;
+        string pn  = isLeft?"PLAYER 1":"PLAYER 2";
 
-        // ── Root ────────────────────────────────
-        var root = new GameObject("_HP_"+s, typeof(RectTransform));
-        root.transform.SetParent(targetCanvas.transform, false);
-        hudRt = root.GetComponent<RectTransform>();
-        hudRt.anchorMin = hudRt.anchorMax = isLeft ? new Vector2(0f,1f) : new Vector2(.5f,1f);
-        hudRt.pivot     = new Vector2(0f,1f);
-        hudRt.anchoredPosition = isLeft?hudOffsetP1:hudOffsetP2;
-        hudRt.sizeDelta = new Vector2(PANW, PANH);
-        Transform t = root.transform;
+        // ── Root ──────────────────────────────
+        var root=new GameObject("_HP_"+s,typeof(RectTransform));
+        root.transform.SetParent(targetCanvas.transform,false);
+        rt=root.GetComponent<RectTransform>();
+        rt.anchorMin=rt.anchorMax=isLeft?new Vector2(0f,1f):new Vector2(.5f,1f);
+        rt.pivot=new Vector2(0f,1f);
+        rt.anchoredPosition=isLeft?hudOffsetP1:hudOffsetP2;
+        rt.sizeDelta=new Vector2(panelW,panelH);
+        var T=root.transform;
 
-        // ── Panel (outer border → inner bg) ─────
-        SI(t,"Bdr",  0f,0f, PANW, PANH, ColPanelBdr);
-        SI(t,"Bg",   1.5f,-1.5f, PANW-3f, PANH-3f, ColPanelDark);
-        SI(t,"BgIn", 3f,-3f, PANW-6f, PANH-6f, ColPanelInner);
+        // ── Panel ─────────────────────────────
+        MkBox(T,"Bdr", 0,0,  panelW,     panelH,     colPanelBdr);
+        MkBox(T,"Bg",  2,-2, panelW-4f,  panelH-4f,  colPanel);
+        MkBox(T,"BgI", 4,-4, panelW-8f,  panelH-8f,  colPanelIn);
 
-        // ── Arc + Portrait ───────────────────────
-        float cx = CIRC/2f + 10f;
-        float cy = -PANH/2f;
-        float D  = CIRC + ARCW*2f + 6f; // เส้นผ่านศูนย์กลาง arc
+        // ── วงกลม Arc ─────────────────────────
+        float cx = circleSize/2f + 10f;
+        float cy = -panelH/2f;
+        float D  = circleSize + arcThickness*2f + 6f;
 
-        // Arc background
-        SC(t,"ArcBg", cx,cy, D,D, ColArcBg, _circleSpr);
+        MkCircle(T,"ArcBg",  cx,cy, D,D, colArcBg);
+        drain = MkArc(T,"Drain",   cx,cy, D,D, colArcDrain);
+        fill  = MkArc(T,"Fill",    cx,cy, D,D, colArcFull);
 
-        // Drain arc (ส้ม ลดช้า)
-        arcDrain = SCArc(t,"ArcDrain", cx,cy, D,D, ColArcDrain);
+        // ── Portrait ─────────────────────────
+        MkCircle(T,"PortBg", cx,cy, circleSize,circleSize, colPortBg);
 
-        // HP arc (ลดเร็ว เปลี่ยนสี)
-        arcFill = SCArc(t,"ArcFill", cx,cy, D,D, ColArcFull);
+        // Ring (วาดก่อน portrait เพื่อซ่อนขอบ arc)
+        MkCircle(T,"RingO",cx,cy,circleSize+arcThickness+4f,circleSize+arcThickness+4f,colRingOut);
+        MkCircle(T,"RingI",cx,cy,circleSize+arcThickness,   circleSize+arcThickness,   colPanelIn);
 
-        // Glow ring (ทองเรือง얇)
-        SC(t,"Glow", cx,cy, D+4f,D+4f, ColArcGlow, _circleSpr);
+        // Portrait Image (บนสุดในวงกลม)
+        float pSize = portraitImageSize > 0f ? portraitImageSize : circleSize - 4f;
+        var pGo=new GameObject("Portrait_"+s,typeof(RectTransform),typeof(Image));
+        pGo.transform.SetParent(T,false);
+        var pRt=pGo.GetComponent<RectTransform>();
+        pRt.anchorMin=pRt.anchorMax=new Vector2(0f,1f);
+        pRt.pivot=new Vector2(.5f,.5f);
+        pRt.anchoredPosition=new Vector2(cx,cy);
+        pRt.sizeDelta=new Vector2(pSize,pSize);
+        portImg=pGo.GetComponent<Image>();
+        portImg.raycastTarget=false;
+        if(port!=null){portImg.sprite=port;portImg.type=Image.Type.Simple;portImg.preserveAspect=true;portImg.color=Color.white;}
+        else portImg.color=colPortBg;
 
-        // ── Portrait: วิธีที่ได้ผล 100% ─────────
-        // ใช้ RawImage + RenderTexture ไม่ได้ใน runtime แบบนี้
-        // ใช้วิธี: สร้าง parent empty → ใส่ Mask → ใส่ Image ลูก
-        //
-        // Parent (Mask holder) — ต้องมี Image component ด้วย
-        var maskHolder = new GameObject("MaskHolder", typeof(RectTransform), typeof(Image), typeof(Mask));
-        maskHolder.transform.SetParent(t, false);
-        var mhRt = maskHolder.GetComponent<RectTransform>();
-        mhRt.anchorMin = mhRt.anchorMax = new Vector2(0f,1f);
-        mhRt.pivot     = new Vector2(.5f,.5f);
-        mhRt.anchoredPosition = new Vector2(cx, cy);
-        mhRt.sizeDelta = new Vector2(CIRC, CIRC);
-        // Image บน MaskHolder ต้องเป็น circle sprite และ showMaskGraphic=false
-        var mhImg = maskHolder.GetComponent<Image>();
-        mhImg.sprite          = _circleSpr;
-        mhImg.color           = Color.white;
-        mhImg.type            = Image.Type.Simple;
-        mhImg.raycastTarget   = false;
-        maskHolder.GetComponent<Mask>().showMaskGraphic = false;
+        // Flash
+        var fGo=new GameObject("Flash_"+s,typeof(RectTransform),typeof(Image));
+        fGo.transform.SetParent(T,false);
+        var fRt=fGo.GetComponent<RectTransform>();
+        fRt.anchorMin=fRt.anchorMax=new Vector2(0f,1f);
+        fRt.pivot=new Vector2(.5f,.5f);
+        fRt.anchoredPosition=new Vector2(cx,cy);
+        fRt.sizeDelta=new Vector2(circleSize,circleSize);
+        flash=fGo.GetComponent<Image>();
+        flash.sprite=_cSpr;flash.type=Image.Type.Simple;
+        flash.color=new Color(1,.05f,.05f,.5f);flash.raycastTarget=false;
+        fGo.SetActive(false);
 
-        // Child 1: พื้นหลัง (ใน mask)
-        var portBg = new GameObject("PortBg", typeof(RectTransform), typeof(Image));
-        portBg.transform.SetParent(maskHolder.transform, false);
-        var pbRt = portBg.GetComponent<RectTransform>();
-        pbRt.anchorMin = Vector2.zero; pbRt.anchorMax = Vector2.one;
-        pbRt.offsetMin = pbRt.offsetMax = Vector2.zero;
-        portBg.GetComponent<Image>().color = ColPortBg;
-
-        // Child 2: Portrait รูปตัวละคร (ใน mask) ← จะถูก clip เป็นวงกลมโดย Mask
-        var portImg = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
-        portImg.transform.SetParent(maskHolder.transform, false);
-        var piRt = portImg.GetComponent<RectTransform>();
-        piRt.anchorMin = Vector2.zero; piRt.anchorMax = Vector2.one;
-        piRt.offsetMin = piRt.offsetMax = Vector2.zero;
-        var piComp = portImg.GetComponent<Image>();
-        piComp.raycastTarget = false;
-        if (port != null)
-        {
-            piComp.sprite         = port;
-            piComp.preserveAspect = true;
-            piComp.color          = Color.white;
-        }
-        else piComp.color = new Color(.25f,.18f,.10f,1f);
-
-        // Child 3: Flash (ใน mask)
-        var flashGo = new GameObject("Flash", typeof(RectTransform), typeof(Image));
-        flashGo.transform.SetParent(maskHolder.transform, false);
-        var flRt = flashGo.GetComponent<RectTransform>();
-        flRt.anchorMin = Vector2.zero; flRt.anchorMax = Vector2.one;
-        flRt.offsetMin = flRt.offsetMax = Vector2.zero;
-        flash = flashGo.GetComponent<Image>();
-        flash.color = ColFlash;
-        flashGo.SetActive(false);
-
-        // วงแหวนทอง (ชั้นบนสุด ล้อม mask)
-        Ring(t,"RO", cx,cy, CIRC+8f,  3.5f, ColRingOuter);
-        Ring(t,"RI", cx,cy, CIRC+14f, 2f,   ColRingInner);
-
-        // ── Text ─────────────────────────────────
-        float tx = cx + CIRC/2f + ARCW + 14f;
-        float tw = PANW - tx - 6f;
-
-        TMP(t,"Name", name, tx,-10f, tw,22f, 13f, ncol, FontStyles.Bold);
-        hpTxt = TMP(t,"Hp", $"{maxHP}<size=65%>/{maxHP}</size>", tx,-33f, tw,26f, 19f, ColHpNum, FontStyles.Bold);
-        TMP(t,"Lbl",  "HP",  tx,-58f, tw,16f, 10f, ColHpLabel, FontStyles.Normal);
+        // ── Text ──────────────────────────────
+        float tx=cx+circleSize/2f+arcThickness+14f;
+        float tw=panelW-tx-6f;
+        MkTMP(T,"Name",pn,              tx,-10f,tw,fontSizeName+8f,fontSizeName,nc,       FontStyles.Bold);
+        txt=MkTMP(T,"Hp",$"{maxHP}<size=65%>/{maxHP}</size>",tx,-10f-fontSizeName-4f,tw,fontSizeHP+8f,fontSizeHP,colHpNum,  FontStyles.Bold);
+        MkTMP(T,"Lbl","HP",             tx,-10f-fontSizeName-4f-fontSizeHP-2f,tw,fontSizeLabel+6f,fontSizeLabel,colHpLabel,FontStyles.Normal);
     }
 
     // ════════════════════════════════════════════
-    //  Image Helpers
+    //  Helpers
     // ════════════════════════════════════════════
 
-    // Stretch Image (pivot ซ้ายบน)
-    Image SI(Transform p, string n, float x, float y, float w, float h, Color c)
+    void MkBox(Transform p,string n,float x,float y,float w,float h,Color c)
     {
-        var go = new GameObject(n, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(p, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = new Vector2(0f,1f);
-        rt.pivot     = new Vector2(0f,1f);
-        rt.anchoredPosition = new Vector2(x,-y);
-        rt.sizeDelta = new Vector2(w,h);
-        var img = go.GetComponent<Image>(); img.color=c; img.raycastTarget=false;
+        var go=new GameObject(n,typeof(RectTransform),typeof(Image));
+        go.transform.SetParent(p,false);
+        var rt=go.GetComponent<RectTransform>();
+        rt.anchorMin=rt.anchorMax=new Vector2(0f,1f);
+        rt.pivot=new Vector2(0f,1f);
+        rt.anchoredPosition=new Vector2(x,-y);
+        rt.sizeDelta=new Vector2(w,h);
+        go.GetComponent<Image>().color=c;
+    }
+
+    Image MkCircle(Transform p,string n,float cx,float cy,float w,float h,Color c)
+    {
+        var go=new GameObject(n,typeof(RectTransform),typeof(Image));
+        go.transform.SetParent(p,false);
+        var rt=go.GetComponent<RectTransform>();
+        rt.anchorMin=rt.anchorMax=new Vector2(0f,1f);
+        rt.pivot=new Vector2(.5f,.5f);
+        rt.anchoredPosition=new Vector2(cx,cy);
+        rt.sizeDelta=new Vector2(w,h);
+        var img=go.GetComponent<Image>();
+        img.sprite=_cSpr;img.type=Image.Type.Simple;
+        img.color=c;img.raycastTarget=false;
         return img;
     }
 
-    // Circle Image (pivot center)
-    Image SC(Transform p, string n, float cx, float cy, float w, float h, Color c, Sprite spr=null)
+    Image MkArc(Transform p,string n,float cx,float cy,float w,float h,Color c)
     {
-        var go = new GameObject(n, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(p, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = new Vector2(0f,1f);
-        rt.pivot     = new Vector2(.5f,.5f);
-        rt.anchoredPosition = new Vector2(cx,cy);
-        rt.sizeDelta = new Vector2(w,h);
-        var img = go.GetComponent<Image>();
-        img.color=c; img.raycastTarget=false;
-        if (spr!=null) { img.sprite=spr; img.type=Image.Type.Simple; }
+        var img=MkCircle(p,n,cx,cy,w,h,c);
+        img.type=Image.Type.Filled;
+        img.fillMethod=Image.FillMethod.Radial360;
+        img.fillOrigin=(int)Image.Origin360.Top;
+        img.fillClockwise=false;
+        img.fillAmount=1f;
         return img;
     }
 
-    // Radial Arc Image
-    Image SCArc(Transform p, string n, float cx, float cy, float w, float h, Color c)
+    TextMeshProUGUI MkTMP(Transform p,string n,string text,
+                          float x,float y,float w,float h,
+                          float sz,Color c,FontStyles fs)
     {
-        var img = SC(p,n,cx,cy,w,h,c,_circleSpr);
-        img.type          = Image.Type.Filled;
-        img.fillMethod    = Image.FillMethod.Radial360;
-        img.fillOrigin    = (int)Image.Origin360.Top;
-        img.fillClockwise = false;
-        img.fillAmount    = 1f;
-        return img;
-    }
-
-    // วงแหวนขอบ (ทอง)
-    void Ring(Transform p, string n, float cx, float cy, float d, float thick, Color c)
-    {
-        SC(p,n+"_o",cx,cy, d+thick*2f, d+thick*2f, c, _circleSpr);
-        SC(p,n+"_i",cx,cy, d,          d,          ColPanelInner, _circleSpr);
-    }
-
-    // ════════════════════════════════════════════
-    //  TMP Helper
-    // ════════════════════════════════════════════
-    TextMeshProUGUI TMP(Transform p, string n, string text,
-                        float x, float y, float w, float h,
-                        float sz, Color c, FontStyles fs)
-    {
-        var go = new GameObject(n, typeof(RectTransform));
-        go.transform.SetParent(p, false);
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = new Vector2(0f,1f);
-        rt.pivot     = new Vector2(0f,1f);
-        rt.anchoredPosition = new Vector2(x,y);
-        rt.sizeDelta = new Vector2(w,h);
-        var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text      = text; tmp.fontSize=sz; tmp.fontStyle=fs;
-        tmp.alignment = TextAlignmentOptions.Left; tmp.color=c;
-        tmp.textWrappingMode = TextWrappingModes.NoWrap;
-        tmp.overflowMode     = TextOverflowModes.Overflow;
+        var go=new GameObject(n,typeof(RectTransform));
+        go.transform.SetParent(p,false);
+        var rt=go.GetComponent<RectTransform>();
+        rt.anchorMin=rt.anchorMax=new Vector2(0f,1f);
+        rt.pivot=new Vector2(0f,1f);
+        rt.anchoredPosition=new Vector2(x,y);
+        rt.sizeDelta=new Vector2(w,h);
+        var tmp=go.AddComponent<TextMeshProUGUI>();
+        tmp.text=text;tmp.fontSize=sz;tmp.fontStyle=fs;
+        tmp.alignment=TextAlignmentOptions.Left;tmp.color=c;
+        tmp.textWrappingMode=TextWrappingModes.NoWrap;
+        tmp.overflowMode=TextOverflowModes.Overflow;
         return tmp;
     }
 
-    // ════════════════════════════════════════════
-    //  Circle Sprite
-    // ════════════════════════════════════════════
-    Sprite BuildCircleSprite(int res)
+    Sprite MakeCircle(int res)
     {
-        var tex = new Texture2D(res, res, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        var px = new Color32[res*res];
-        float h2 = res*.5f, r2 = (h2-1f)*(h2-1f);
-        for (int y=0;y<res;y++) for (int x=0;x<res;x++)
-        {
-            float dx=x-h2+.5f, dy=y-h2+.5f;
-            px[y*res+x] = new Color32(255,255,255, dx*dx+dy*dy<=r2?(byte)255:(byte)0);
-        }
-        tex.SetPixels32(px); tex.Apply();
+        var tex=new Texture2D(res,res,TextureFormat.RGBA32,false);
+        tex.filterMode=FilterMode.Bilinear;
+        var px=new Color32[res*res];
+        float h2=res*.5f,r2=(h2-1f)*(h2-1f);
+        for(int y=0;y<res;y++)for(int x=0;x<res;x++)
+        {float dx=x-h2+.5f,dy=y-h2+.5f;px[y*res+x]=new Color32(255,255,255,dx*dx+dy*dy<=r2?(byte)255:(byte)0);}
+        tex.SetPixels32(px);tex.Apply();
         return Sprite.Create(tex,new Rect(0,0,res,res),new Vector2(.5f,.5f),res);
     }
 }
