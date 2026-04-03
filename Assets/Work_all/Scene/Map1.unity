@@ -34334,6 +34334,82 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 918293182789584205, guid: e0b2792fd3ecf274fa1b9172d6962562, type: 3}
   m_PrefabInstance: {fileID: 1908060103}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1426147166
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1426147168}
+  - component: {fileID: 1426147167}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1426147167
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426147166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 769332823fe7f614bab64b27016dfd5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PauseMenu
+  targetCanvas: {fileID: 1439346213}
+  splitScreenManager: {fileID: 297360764}
+  restartSceneName: MainMeNu
+  mainMenuSceneName: MainMenu
+  soundIconSprite: {fileID: 0}
+  musicIconSprite: {fileID: 0}
+  resumeIconSprite: {fileID: 0}
+  restartIconSprite: {fileID: 0}
+  quitIconSprite: {fileID: 0}
+  panelPosition: {x: 0, y: 0}
+  panelSize: {x: 420, y: 560}
+  buttonSize: {x: 320, y: 58}
+  buttonSpacing: 14
+  sliderSize: {x: 280, y: 28}
+  iconSize: {x: 32, y: 32}
+  titleFontSize: 36
+  btnFontSize: 18
+  labelFontSize: 13
+  colOverlay: {r: 0, g: 0, b: 0, a: 0.65}
+  colPanel: {r: 0.08, g: 0.06, b: 0.04, a: 0.98}
+  colBorder: {r: 0.85, g: 0.58, b: 0.08, a: 1}
+  colInner: {r: 0.14, g: 0.1, b: 0.06, a: 0.96}
+  colTitle: {r: 1, g: 0.85, b: 0.3, a: 1}
+  colBtnNormal: {r: 0.2, g: 0.15, b: 0.08, a: 1}
+  colBtnHover: {r: 0.85, g: 0.58, b: 0.08, a: 1}
+  colBtnDanger: {r: 0.55, g: 0.1, b: 0.08, a: 1}
+  colBtnText: {r: 1, g: 0.95, b: 0.8, a: 1}
+  colSep: {r: 0.85, g: 0.58, b: 0.08, a: 0.45}
+  colSliderBg: {r: 0.12, g: 0.08, b: 0.04, a: 1}
+  colSliderFg: {r: 0.85, g: 0.62, b: 0.1, a: 1}
+  colLabel: {r: 0.8, g: 0.72, b: 0.55, a: 1}
+  colAccent: {r: 0.94, g: 0.62, b: 0.15, a: 1}
+--- !u!4 &1426147168
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426147166}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -66.18331, y: 4.4202, z: 69.75909}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1428819183 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7493292263612982230, guid: a81ce967e67ac4148a2168612d8c6d5c, type: 3}
@@ -44035,6 +44111,65 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cf53323f590366f43b4564f7d3d614d7, type: 3}
+--- !u!1 &1794781369
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1794781371}
+  - component: {fileID: 1794781370}
+  m_Layer: 0
+  m_Name: SoundManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1794781370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1794781369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1de5cfed3bc96eb419bdec7b9cec2ee9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundManager
+  bgmClip: {fileID: 8300000, guid: 0b24a6ac6f416cb45ac86f02a3c2c9be, type: 3}
+  bgmVolume: 0.4
+  playOnStart: 1
+  sfxFootstep: {fileID: 0}
+  sfxJump: {fileID: 0}
+  sfxLand: {fileID: 0}
+  sfxPickup: {fileID: 0}
+  sfxDrop: {fileID: 0}
+  sfxThrow: {fileID: 0}
+  sfxHurt: {fileID: 0}
+  sfxCheckpoint: {fileID: 0}
+  sfxPauseOpen: {fileID: 0}
+  sfxPauseClose: {fileID: 0}
+  sfxButton: {fileID: 0}
+  sfxVolume: 0.8
+--- !u!4 &1794781371
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1794781369}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -66.18331, y: 4.4202, z: 69.75909}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1795509362 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2781247671593959093, guid: 4adb6dd295bb09c45b67023131c8958f, type: 3}
@@ -50868,3 +51003,5 @@ SceneRoots:
   - {fileID: 795033467}
   - {fileID: 1252791880}
   - {fileID: 680330260}
+  - {fileID: 1794781371}
+  - {fileID: 1426147168}
