@@ -29210,8 +29210,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   target: {fileID: 538864544}
-  distance: 10
-  height: 5
+  distance: 6
+  height: 4
   yawFollowSpeed: 1.5
   yawDeadzone: 45
   minSpeedToFollow: 1
@@ -35819,8 +35819,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   target: {fileID: 1153631753}
-  distance: 10
-  height: 5
+  distance: 6
+  height: 4
   yawFollowSpeed: 1.5
   yawDeadzone: 45
   minSpeedToFollow: 1
