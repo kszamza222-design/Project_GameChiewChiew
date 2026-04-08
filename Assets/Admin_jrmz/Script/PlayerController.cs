@@ -3,7 +3,11 @@ using UnityEngine;
 /// <summary>
 /// PlayerController — Human Fall Flat style
 /// ใช้ Animator Bool "IsCarrying" แทน Layer Weight
-/// สร้าง Transition ใน Base Layer: Idle Walk Run Blend ↔ Carry_Blend
+/// รองรับการยกของจากมุมใดก็ได้ (preserveGrabOffset)
+///
+/// Grab Offset System:
+///   เมื่อหยิบวัตถุ จะรักษา Offset ไว้ก่อน แล้วค่อยๆ Lerp เข้า HoldPoint
+///   ทำให้ยกจากมุมซ้าย/ขวา/หน้า/หลัง ได้อิสระ
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerInputHandler))]
@@ -30,9 +34,23 @@ public class PlayerController : MonoBehaviour
     [Tooltip("รัศมีตรวจหยิบของรอบตัวละคร")]
     public float pickupRadius  = 2.2f;
     public LayerMask pickableLayer;
-    [Tooltip("ตัวคูณความเร็วขณะถือของ (0.5 = ช้าลงครึ่งนึง)")]
+    [Tooltip("ตัวคูณความเร็วขณะถือของ")]
     [Range(0.1f, 1f)]
-    public float carrySpeedMultiplier = 0.5f;
+    public float carrySpeedMultiplier = 0.6f;
+
+    [Header("── Grab Offset ─────────────────────")]
+    [Tooltip("เปิด = รักษา Offset จากจุดที่หยิบ ยกจากมุมไหนก็ได้\nปิด = Snap วัตถุเข้า HoldPoint ทันที")]
+    public bool  preserveGrabOffset = true;
+
+    [Tooltip("ความเร็วที่ Offset ค่อยๆ Lerp เข้า HoldPoint\nต่ำ = ลอยอยู่นาน, สูง = เข้าเร็ว (แนะนำ 4-8)")]
+    [Range(0.5f, 20f)]
+    public float grabLerpSpeed = 5f;
+
+    [Tooltip("ยกวัตถุขึ้นจากพื้นเมื่อหยิบ (Y offset ขั้นต่ำ)")]
+    public float liftHeight = 0.3f;
+
+    [Tooltip("ระยะ Offset สูงสุดที่ยอมให้ห่างจาก HoldPoint\n0 = ไม่จำกัด")]
+    public float maxHoldDistance = 2f;
 
     [Header("── Throw ───────────────────────────")]
     public float throwForce    = 9f;
@@ -57,10 +75,13 @@ public class PlayerController : MonoBehaviour
     bool    _isGrounded;
     float   _jumpCooldown;
 
-    Rigidbody         _heldRb;
-    Collider          _myCollider;
-    ConfigurableJoint _dragJoint;
-    Rigidbody         _draggedRb;
+    Rigidbody _heldRb;
+    Collider  _myCollider;
+
+    // ── Grab Offset State ──
+    Vector3    _grabOffset;      // Offset ระหว่างวัตถุกับ HoldPoint ณ เวลาหยิบ
+    Quaternion _grabWorldRot;    // Rotation ของวัตถุ ณ เวลาหยิบ
+    float      _grabLerpT;       // 0 = อยู่ที่จุดหยิบ, 1 = อยู่ที่ HoldPoint
 
     // ── Animator hash ──
     static readonly int HashSpeed       = Animator.StringToHash("Speed");
@@ -85,22 +106,17 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         if (holdPoint == null)
-            Debug.LogWarning($"[{name}] Hold Point ยังไม่ได้ผูก!");
+            Debug.LogWarning("[PlayerController] Hold Point ยังไม่ได้ผูก!");
 
         if (_anim != null)
         {
             bool found = false;
             foreach (var p in _anim.parameters)
                 if (p.name == "IsCarrying") { found = true; break; }
-
             if (!found)
-                Debug.LogError($"[{name}] ไม่พบ Parameter 'IsCarrying' ใน Animator!");
+                Debug.LogWarning("[PlayerController] ไม่พบ Parameter 'IsCarrying' ใน Animator");
             else
-                Debug.Log($"[{name}] พบ Parameter 'IsCarrying' ✓");
-        }
-        else
-        {
-            Debug.LogError($"[{name}] ไม่พบ Animator Component!");
+                Debug.Log("[PlayerController] พบ Parameter 'IsCarrying' ✓");
         }
     }
 
@@ -122,11 +138,10 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (_heldRb != null && holdPoint != null)
-        {
-            _heldRb.MovePosition(holdPoint.position);
-            _heldRb.MoveRotation(holdPoint.rotation);
-        }
+        if (_heldRb == null || holdPoint == null) return;
+        _heldRb.MovePosition(CalcCarryPos());
+        _heldRb.MoveRotation(
+            Quaternion.Slerp(_grabWorldRot, holdPoint.rotation, _grabLerpT));
     }
 
     // ═══════════════════════════════════════════════════
@@ -170,23 +185,18 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 camF = _cam.transform.forward; camF.y = 0f; camF.Normalize();
             Vector3 camR = _cam.transform.right;   camR.y = 0f; camR.Normalize();
+            Vector3 dir  = (camF * _input.MoveInput.y + camR * _input.MoveInput.x).normalized;
 
-            Vector3 dir = (camF * _input.MoveInput.y + camR * _input.MoveInput.x).normalized;
-
-            Quaternion targetRot = Quaternion.LookRotation(dir);
             transform.rotation = Quaternion.RotateTowards(
-                transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+                transform.rotation, Quaternion.LookRotation(dir), rotationSpeed * Time.deltaTime);
 
-            // ── ถือของ = ช้าลงตาม carrySpeedMultiplier ──
             float spd = _heldRb != null ? moveSpeed * carrySpeedMultiplier : moveSpeed;
             targetVel = dir * spd;
         }
 
         float rate = targetVel.sqrMagnitude > 0.01f ? acceleration : deceleration;
         _horizontalVel = Vector3.MoveTowards(_horizontalVel, targetVel, rate * Time.deltaTime);
-
-        Vector3 motion = new Vector3(_horizontalVel.x, _verticalVel, _horizontalVel.z);
-        _cc.Move(motion * Time.deltaTime);
+        _cc.Move(new Vector3(_horizontalVel.x, _verticalVel, _horizontalVel.z) * Time.deltaTime);
     }
 
     // ═══════════════════════════════════════════════════
@@ -200,14 +210,14 @@ public class PlayerController : MonoBehaviour
         if (_input.CarryReleased && _heldRb != null) DropObject();
     }
 
+    // ────────────────────────────────────────────────────
+    //  TryPickup — บันทึก Offset จากจุดที่หยิบจริงๆ
+    // ────────────────────────────────────────────────────
+
     void TryPickup()
     {
         Collider[] hits = Physics.OverlapSphere(transform.position, pickupRadius, pickableLayer);
-        if (hits.Length == 0)
-        {
-            Debug.Log($"[{name}] TryPickup: ไม่พบ Object ใน radius {pickupRadius}");
-            return;
-        }
+        if (hits.Length == 0) return;
 
         float closest = float.MaxValue;
         Rigidbody bestRb = null;
@@ -224,15 +234,36 @@ public class PlayerController : MonoBehaviour
         _heldRb.isKinematic   = true;
         _heldRb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        if (holdPoint != null)
+        if (preserveGrabOffset && holdPoint != null)
         {
+            // ─ บันทึกตำแหน่ง/หมุน ณ เวลาหยิบ ─
+            _grabWorldRot = _heldRb.rotation;
+
+            // Offset = ตำแหน่งวัตถุ - ตำแหน่ง HoldPoint
+            _grabOffset = _heldRb.position - holdPoint.position;
+
+            // ยกขึ้นเล็กน้อยถ้าวัตถุอยู่ต่ำกว่า liftHeight
+            if (_grabOffset.y < liftHeight)
+                _grabOffset.y = liftHeight;
+
+            // จำกัด maxHoldDistance ตั้งแต่แรก
+            if (maxHoldDistance > 0f && _grabOffset.magnitude > maxHoldDistance)
+                _grabOffset = _grabOffset.normalized * maxHoldDistance;
+
+            _grabLerpT = 0f;  // เริ่มที่ offset เต็ม → ค่อยๆ เข้า HoldPoint
+        }
+        else if (holdPoint != null)
+        {
+            // Snap ทันที (preserveGrabOffset = false)
             _heldRb.position = holdPoint.position;
             _heldRb.rotation = holdPoint.rotation;
+            _grabWorldRot    = holdPoint.rotation;
+            _grabOffset      = Vector3.zero;
+            _grabLerpT       = 1f;
         }
 
         ToggleHeldCollision(true);
         _heldRb.GetComponent<PickableObject>()?.OnPickedUp();
-        Debug.Log($"[{name}] หยิบ {bestRb.name} ✓");
     }
 
     void DropObject()
@@ -248,8 +279,8 @@ public class PlayerController : MonoBehaviour
         var rb = _heldRb;
         _heldRb.GetComponent<PickableObject>()?.OnDropped();
         ReleaseHeld();
-        Vector3 dir = transform.forward + Vector3.up * throwUpRatio;
-        rb.AddForce(dir.normalized * throwForce, ForceMode.Impulse);
+        rb.AddForce((transform.forward + Vector3.up * throwUpRatio).normalized
+                    * throwForce, ForceMode.Impulse);
     }
 
     void ReleaseHeld()
@@ -257,7 +288,9 @@ public class PlayerController : MonoBehaviour
         ToggleHeldCollision(false);
         _heldRb.isKinematic = false;
         _heldRb.useGravity  = true;
-        _heldRb = null;
+        _heldRb             = null;
+        _grabOffset         = Vector3.zero;
+        _grabLerpT          = 0f;
     }
 
     void ToggleHeldCollision(bool ignore)
@@ -269,13 +302,44 @@ public class PlayerController : MonoBehaviour
 
     // ═══════════════════════════════════════════════════
     //  UpdateCarriedObject
+    //  Lerp Offset จากจุดหยิบ → HoldPoint อย่างนุ่มนวล
     // ═══════════════════════════════════════════════════
 
     void UpdateCarriedObject()
     {
         if (_heldRb == null || holdPoint == null) return;
-        _heldRb.transform.position = holdPoint.position;
-        _heldRb.transform.rotation = holdPoint.rotation;
+
+        if (preserveGrabOffset)
+        {
+            // เพิ่ม t ทีละน้อย
+            _grabLerpT = Mathf.MoveTowards(_grabLerpT, 1f,
+                                            grabLerpSpeed * Time.deltaTime);
+
+            _heldRb.transform.position = CalcCarryPos();
+            _heldRb.transform.rotation = Quaternion.Slerp(
+                _grabWorldRot, holdPoint.rotation, _grabLerpT);
+        }
+        else
+        {
+            _heldRb.transform.position = holdPoint.position;
+            _heldRb.transform.rotation = holdPoint.rotation;
+        }
+    }
+
+    // คำนวณตำแหน่งเป้าหมาย
+    Vector3 CalcCarryPos()
+    {
+        if (!preserveGrabOffset || holdPoint == null)
+            return holdPoint != null ? holdPoint.position : _heldRb.position;
+
+        // Lerp offset จาก grabOffset → zero
+        Vector3 offset = Vector3.Lerp(_grabOffset, Vector3.zero, _grabLerpT);
+
+        // จำกัดระยะสูงสุด
+        if (maxHoldDistance > 0f && offset.magnitude > maxHoldDistance)
+            offset = offset.normalized * maxHoldDistance;
+
+        return holdPoint.position + offset;
     }
 
     // ═══════════════════════════════════════════════════
@@ -286,17 +350,13 @@ public class PlayerController : MonoBehaviour
     {
         if (_anim == null) return;
 
-        bool isCarrying = _heldRb != null;
-        float spd       = _horizontalVel.magnitude;
-
-        _anim.SetFloat(HashSpeed,       spd, 0.15f, Time.deltaTime);
+        _anim.SetFloat(HashSpeed,       _horizontalVel.magnitude, 0.15f, Time.deltaTime);
         _anim.SetFloat(HashMotionSpeed, 1f);
         _anim.SetBool(HashGrounded,     _isGrounded);
         _anim.SetBool(HashFreeFall,     !_isGrounded && _verticalVel < -1f);
-        _anim.SetBool(HashIsCarrying,   isCarrying);
+        _anim.SetBool(HashIsCarrying,   _heldRb != null);
 
-        if (_isGrounded)
-            _anim.ResetTrigger(HashJump);
+        if (_isGrounded) _anim.ResetTrigger(HashJump);
     }
 
     // ═══════════════════════════════════════════════════
@@ -318,6 +378,12 @@ public class PlayerController : MonoBehaviour
             Gizmos.color = Color.blue;
             Gizmos.DrawLine(holdPoint.position,
                             holdPoint.position + holdPoint.forward * 0.4f);
+
+            if (maxHoldDistance > 0f)
+            {
+                Gizmos.color = new Color(1f, 0.5f, 0f, 0.25f);
+                Gizmos.DrawWireSphere(holdPoint.position, maxHoldDistance);
+            }
         }
     }
 }

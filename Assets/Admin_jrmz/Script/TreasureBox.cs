@@ -52,6 +52,10 @@ public class TreasureBox : MonoBehaviour
     [Tooltip("ปรับ Y ให้ป้ายหันถูกทิศ")]
     public Vector3 boardRotation = new Vector3(0f, 180f, 0f);
 
+    [Header("── Key Inventory ───────────────────")]
+    [Tooltip("ผูก GameObject ที่มี KeyInventory script")]
+    public KeyInventory keyInventory;
+
     [Header("── Notification ─────────────────────")]
     [Tooltip("เวลาแสดง notification (วินาที)")]
     public float notifyDuration = 3.0f;
@@ -148,11 +152,38 @@ public class TreasureBox : MonoBehaviour
     {
         _boxOpened = true;
 
-        // เล่น Animation กล่อง
+        // เล่น Animation กล่อง — ถ้าไม่ได้ผูกใน Inspector จะหาเองอัตโนมัติ
+        if (boxAnimator == null)
+            boxAnimator = GetComponentInChildren<Animator>();
+
         if (boxAnimator != null)
-            boxAnimator.SetTrigger(openTrigger);
+        {
+            // ตรวจว่ามี Parameter จริงไหม
+            bool found = false;
+            foreach (var p in boxAnimator.parameters)
+                if (p.name == openTrigger) { found = true; break; }
+
+            if (found)
+            {
+                boxAnimator.SetTrigger(openTrigger);
+                Debug.Log("[TreasureBox] SetTrigger: " + openTrigger + " ✓");
+            }
+            else
+            {
+                Debug.LogError("[TreasureBox] ไม่พบ Trigger '" + openTrigger +
+                               "' ใน Animator — กรุณาเพิ่ม Trigger parameter ชื่อ 'Open'");
+            }
+        }
         else
-            Debug.LogWarning("[TreasureBox] ไม่ได้ผูก Animator!");
+        {
+            Debug.LogError("[TreasureBox] ไม่พบ Animator บน GameObject นี้หรือ Children!");
+        }
+
+        // เพิ่มกุญแจใน Inventory
+        if (keyInventory != null)
+            keyInventory.AddKey(isP1);
+        else
+            Debug.LogWarning("[TreasureBox] ยังไม่ได้ผูก KeyInventory!");
 
         // แสดง notification ฝั่งที่เปิด
         StartCoroutine(ShowNotification(isP1 ? _notifyP1 : _notifyP2));
@@ -277,7 +308,7 @@ public class TreasureBox : MonoBehaviour
 
         const float W  = 260f;
         const float H  =  64f;
-        const float PAD = 20f;  // ระยะห่างจากขอบจอ
+        const float PAD = 60f;  // ระยะห่างจากขอบจอ (ยกสูงขึ้น)
 
         // ── Root ────────────────────────────────────
         var root = new GameObject("_KeyNotify_" + suffix,

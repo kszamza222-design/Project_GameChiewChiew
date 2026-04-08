@@ -82,18 +82,26 @@ public class KeypadPromptUI : MonoBehaviour
             return;
         }
 
-        // ตรวจระยะผู้เล่น (อ้างอิงจาก transform ของ script นี้เสมอ)
         bool p1Near = player1 != null &&
                       Vector3.Distance(player1.transform.position, transform.position) <= showRadius;
         bool p2Near = player2 != null &&
                       Vector3.Distance(player2.transform.position, transform.position) <= showRadius;
 
+        // ── กด E / Numpad7 เพื่อเปิด Keypad UI ──────────
+        if (_builder != null && !_builder.IsKeypadOpen)
+        {
+            if (p1Near && Input.GetKeyDown(KeyCode.E))
+                _builder.Open(player1, isLeftSide: true);
+
+            if (p2Near && Input.GetKeyDown(KeyCode.Keypad7))
+                _builder.Open(player2, isLeftSide: false);
+        }
+
+        // ── แสดง/ซ่อนป้าย ────────────────────────────────
         bool shouldShow = (p1Near || p2Near) &&
                           (_builder == null || !_builder.IsKeypadOpen);
 
         _board.SetActive(shouldShow);
-
-        // หมุนป้ายตามที่กำหนดใน Inspector (ปรับ Y ใน Inspector เพื่อหันให้ถูกทิศ)
         _board.transform.rotation = Quaternion.Euler(boardRotation);
     }
 
