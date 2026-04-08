@@ -104,7 +104,7 @@ public class SoundManager : MonoBehaviour
         _bgmSource.Play();
     }
 
-    public void StopBGM() => _bgmSource.Stop();
+    public void StopBGM()  => _bgmSource.Stop();
     public void PauseBGM() => _bgmSource.Pause();
     public void ResumeBGM() => _bgmSource.UnPause();
 
@@ -134,16 +134,16 @@ public class SoundManager : MonoBehaviour
         _sfxSource.PlayOneShot(clip, sfxVolume);
     }
 
-    // ── Shortcut methods ─────────────────────────
-    public void PlayFootstep()  => PlaySFX(sfxFootstep);
-    public void PlayJump()      => PlaySFX(sfxJump);
-    public void PlayLand()      => PlaySFX(sfxLand);
-    public void PlayPickup()    => PlaySFX(sfxPickup);
-    public void PlayDrop()      => PlaySFX(sfxDrop);
-    public void PlayThrow()     => PlaySFX(sfxThrow);
-    public void PlayHurt()      => PlaySFX(sfxHurt);
+    // ── Shortcut methods ─────────────────────────────
+    public void PlayFootstep()   => PlaySFX(sfxFootstep);
+    public void PlayJump()       => PlaySFX(sfxJump);
+    public void PlayLand()       => PlaySFX(sfxLand);
+    public void PlayPickup()     => PlaySFX(sfxPickup);
+    public void PlayDrop()       => PlaySFX(sfxDrop);
+    public void PlayThrow()      => PlaySFX(sfxThrow);
+    public void PlayHurt()       => PlaySFX(sfxHurt);
     public void PlayCheckpoint() => PlaySFX(sfxCheckpoint);
-    public void PlayButton()    => PlaySFX(sfxButton);
-    public void PlayPauseOpen() => PlaySFX(sfxPauseOpen);
+    public void PlayButton()     => PlaySFX(sfxButton);
+    public void PlayPauseOpen()  => PlaySFX(sfxPauseOpen);
     public void PlayPauseClose() => PlaySFX(sfxPauseClose);
 }
