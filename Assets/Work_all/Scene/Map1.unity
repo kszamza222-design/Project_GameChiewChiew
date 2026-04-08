@@ -28192,15 +28192,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -66.4
+      value: -1.92
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.5
+      value: 2.88
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 63
+      value: -0.14
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a4fd8ae685b65db4eb394632c97e50d8, type: 3}
       propertyPath: m_LocalRotation.w
@@ -34570,8 +34570,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   target: {fileID: 538864544}
-  distance: 10
-  height: 5
+  distance: 6
+  height: 4
   yawFollowSpeed: 1.5
   yawDeadzone: 45
   minSpeedToFollow: 1
@@ -38442,7 +38442,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.5299985
+      value: 1.34
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eea08e96772085742a9253a8fd8ecbb3, type: 3}
       propertyPath: m_LocalPosition.y
@@ -43154,8 +43154,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   target: {fileID: 1153631753}
-  distance: 10
-  height: 5
+  distance: 6
+  height: 4
   yawFollowSpeed: 1.5
   yawDeadzone: 45
   minSpeedToFollow: 1
