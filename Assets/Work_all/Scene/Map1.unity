@@ -33353,6 +33353,59 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d7df4735a5dc1184a9579b816dc59ead, type: 3}
+--- !u!1 &1402191966
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1402191968}
+  - component: {fileID: 1402191967}
+  m_Layer: 0
+  m_Name: DevConsole
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1402191967
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1402191966}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d15b205f8b91b154ea47e55d9236111b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DevConsole
+  targetCanvas: {fileID: 1439346213}
+  player1: {fileID: 1153631752}
+  player2: {fileID: 538864543}
+  healthSystem: {fileID: 680330259}
+  checkpointManager: {fileID: 1423319132}
+  keyInventory: {fileID: 115813983}
+  toggleKey: 293
+  panelOffset: {x: 500, y: -10}
+  extraCanvasesToHide: []
+--- !u!4 &1402191968
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1402191966}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.08319, y: 0.73199, z: -2.53338}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1404270926
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -33822,6 +33875,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2f38e6e6e4bbf834b8e22cbfa772e4b9, type: 3}
+--- !u!114 &1423319132 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1319043579553787956, guid: 03c627f0caa95c74cbe7aa8c24ac9fb5, type: 3}
+  m_PrefabInstance: {fileID: 6278541051172183215}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b70be67ac416d54ab2928811218889a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CheckpointManager
 --- !u!1 &1423416250 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3413137381011079034, guid: 4e32bfe4347579642a55a115afc920b1, type: 3}
@@ -43083,6 +43147,7 @@ GameObject:
   - component: {fileID: 1777768384}
   - component: {fileID: 1777768383}
   - component: {fileID: 1777768387}
+  - component: {fileID: 1777768388}
   m_Layer: 0
   m_Name: Camera_P1
   m_TagString: Untagged
@@ -43252,6 +43317,15 @@ MonoBehaviour:
     m_Bits: 256
   fadeAlpha: 0.15
   fadeSpeed: 8
+--- !u!45 &1777768388
+Skybox:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1777768381}
+  m_Enabled: 1
+  m_CustomSkybox: {fileID: 2100000, guid: 7416536dbe0334cfd888dd1beb75a9fb, type: 2}
 --- !u!1001 &1777828088
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -50542,3 +50616,4 @@ SceneRoots:
   - {fileID: 680330260}
   - {fileID: 1794781371}
   - {fileID: 1426147168}
+  - {fileID: 1402191968}
